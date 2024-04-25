@@ -1,0 +1,19 @@
+services:
+  postgres:
+    container_name: inventory
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: secret
+      POSTGRES_USER: anomy
+      POSTGRES_DB: inventory
+    ports:
+      - '5432:5432'
+    volumes:
+      - inventory:/var/lib/postgresql/data
+    networks:
+      - webnet
+    restart: always
+volumes:
+  inventory: {}
+networks:
+  webnet:

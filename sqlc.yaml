@@ -1,0 +1,17 @@
+version: '2'
+sql:
+  - engine: 'postgresql' # postgresql, mysql or sqlite
+    # queries refers to where our manually created queries located
+    queries: 'misc/queries' # will refer a directory
+    # schema refers to where our schema definitions located
+    schema: 'misc/migrations' # will refer a directory
+    gen:
+      go:
+        package: 'db'
+        out: 'db'
+        # "json:"column_name""
+        emit_json_tags: true
+        # "db:"column_name""
+        emit_db_tags: true
+        # if true null types will be null // https://github.com/sqlc-dev/sqlc/pull/1571
+        emit_pointers_for_null_types: true

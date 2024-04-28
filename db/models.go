@@ -13,4 +13,5 @@ type User struct {
 	Name   string         `db:"name" json:"name"`
 	Email  string         `db:"email" json:"email"`
 	Avatar sql.NullString `db:"avatar" json:"avatar"`
+	Token  sql.NullString `db:"token" json:"token"`
 }

@@ -10,6 +10,8 @@ import (
 type Config struct {
 	googleOauthConfig *oauth2.Config
 	oauthStateString  string
+	jwtSecret         string
+	jwtCookieKey      string
 }
 
 func NewConfig() *Config {
@@ -24,5 +26,7 @@ func NewConfig() *Config {
 	return &Config{
 		googleOauthConfig: googleOauthConfig,
 		oauthStateString:  "random_google",
+		jwtSecret:         os.Getenv("JWT_SECRET"),
+		jwtCookieKey:      "messjwt",
 	}
 }

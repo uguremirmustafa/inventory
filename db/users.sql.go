@@ -7,23 +7,31 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const createUser = `-- name: CreateUser :one
 INSERT INTO
-    users (name)
+    users (name, email, avatar)
 VALUES
-    ($1) RETURNING id, name, email, avatar
+    ($1, $2, $3) RETURNING id, name, email, avatar, token
 `
 
-func (q *Queries) CreateUser(ctx context.Context, name string) (User, error) {
-	row := q.db.QueryRowContext(ctx, createUser, name)
+type CreateUserParams struct {
+	Name   string         `db:"name" json:"name"`
+	Email  string         `db:"email" json:"email"`
+	Avatar sql.NullString `db:"avatar" json:"avatar"`
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, createUser, arg.Name, arg.Email, arg.Avatar)
 	var i User
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
 		&i.Email,
 		&i.Avatar,
+		&i.Token,
 	)
 	return i, err
 }
@@ -42,7 +50,7 @@ func (q *Queries) DeleteUser(ctx context.Context, id int64) error {
 
 const getUser = `-- name: GetUser :one
 SELECT
-    id, name, email, avatar
+    id, name, email, avatar, token
 FROM
     users
 WHERE
@@ -59,13 +67,14 @@ func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
 		&i.Name,
 		&i.Email,
 		&i.Avatar,
+		&i.Token,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
 SELECT
-    id, name, email, avatar
+    id, name, email, avatar, token
 FROM
     users
 WHERE
@@ -82,6 +91,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.Name,
 		&i.Email,
 		&i.Avatar,
+		&i.Token,
 	)
 	return i, err
 }

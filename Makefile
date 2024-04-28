@@ -16,6 +16,9 @@ dbup:
 dbdown:
 	@docker compose down
 
+db_shell:
+	@docker exec -it inventory sh
+
 createdb:
 	@docker exec -it inventory createdb --username=anomy --owner=anomy inventory
 

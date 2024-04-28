@@ -21,6 +21,7 @@ func Run(ctx context.Context) error {
 		panic(err)
 	}
 	q := db.New(pgDB)
+	defer pgDB.Close()
 
 	// w.Write([]byte(args[1]))
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt)
@@ -43,13 +44,12 @@ func Run(ctx context.Context) error {
 	go func() {
 		defer wg.Done()
 		<-ctx.Done()
-		// make a new context for the Shutdown (thanks Alessandro Rosetti)
-		shutdownCtx := context.Background()
 		shutdownCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 		defer cancel()
 		if err := httpServer.Shutdown(shutdownCtx); err != nil {
 			fmt.Fprintf(os.Stderr, "error shutting down http server: %s\n", err)
 		}
+		log.Println("Server stopped gracefully")
 	}()
 	wg.Wait()
 	return nil
@@ -60,7 +60,6 @@ func NewPostgresDB(connStr string) (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer db.Close()
 	err = db.Ping()
 	if err != nil {
 		return nil, err
@@ -75,9 +74,11 @@ func NewServer(c *Config, q *db.Queries) http.Handler {
 }
 
 func addRoutes(mux *http.ServeMux, q *db.Queries, c *Config) {
+	mux.Handle("GET /", handleHome())
 	mux.Handle("POST /v1/users", handleGreet(q, c))
 	mux.Handle("GET /v1/auth/login", handleLoginGoogle(c))
 	mux.Handle("GET /v1/auth/callback", handleCallbackGoogle(q, c))
+	mux.Handle("GET /v1/me", authenticateMiddleware(c, handleMe(q, c)))
 }
 
 func encode[T any](w http.ResponseWriter, status int, v T) error {
@@ -95,4 +96,14 @@ func decode[T any](r *http.Request) (*T, error) {
 		return &v, fmt.Errorf("decode json: %w", err)
 	}
 	return &v, nil
+}
+
+func handleHome() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, `
+		<div>
+			<a href="/v1/auth/login">Login with Google</a>
+			<a href="/v1/me">see me</a>
+		</div>`)
+	})
 }

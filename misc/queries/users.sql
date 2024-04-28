@@ -20,9 +20,9 @@ LIMIT
 
 -- name: CreateUser :one
 INSERT INTO
-    users (name)
+    users (name, email, avatar)
 VALUES
-    ($1) RETURNING *;
+    ($1, $2, $3) RETURNING *;
 
 -- name: DeleteUser :exec
 DELETE FROM

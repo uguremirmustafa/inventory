@@ -17,7 +17,7 @@ dbdown:
 	@docker compose down
 
 db_shell:
-	@docker exec -it inventory sh
+	@docker exec -it inventory psql -U anomy inventory
 
 createdb:
 	@docker exec -it inventory createdb --username=anomy --owner=anomy inventory

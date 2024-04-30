@@ -95,8 +95,8 @@ func handleCallbackGoogle(q *db.Queries, c *Config) http.Handler {
 			Path:     "/",
 		})
 
-		msg := fmt.Sprintf("Welcome to the homeventory %s", user.Name)
-		encode(w, http.StatusOK, msg)
+		// msg := fmt.Sprintf("Welcome to the homeventory %s", user.Name)
+		http.Redirect(w, r, "/v1/me", http.StatusTemporaryRedirect)
 	})
 }
 
@@ -110,13 +110,12 @@ func handleMe(q *db.Queries, c *Config) http.Handler {
 		}
 
 		user, err := q.GetUser(ctx, int64(userID))
-
 		if err != nil {
-			encode(w, http.StatusOK, "user not found")
+			encode(w, http.StatusNotFound, "user not found")
 			return
 		}
 
-		encode(w, http.StatusOK, user)
+		encode(w, http.StatusOK, getUserJson(user))
 	})
 }
 
@@ -186,6 +185,7 @@ func authenticateMiddleware(c *Config, next http.Handler) http.Handler {
 		// Get JWT token from the cookie
 		cookie, err := r.Cookie(c.jwtCookieKey)
 		if err != nil {
+			fmt.Println("no cookie found on request")
 			redirectToLogin(w, r)
 			return
 		}
@@ -212,5 +212,21 @@ func authenticateMiddleware(c *Config, next http.Handler) http.Handler {
 }
 
 func redirectToLogin(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("redirecting to login")
 	http.Redirect(w, r, "/v1/auth/login", http.StatusSeeOther)
+}
+
+type UserResponse struct {
+	Name   string `json:"name"`
+	Email  string `json:"email"`
+	Avatar string `json:"avatar"`
+}
+
+func getUserJson(dbUser db.User) UserResponse {
+	responseData := UserResponse{
+		Name:   dbUser.Name,
+		Email:  dbUser.Email,
+		Avatar: dbUser.Avatar.String,
+	}
+	return responseData
 }

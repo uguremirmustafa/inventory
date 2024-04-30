@@ -13,7 +13,20 @@ services:
     networks:
       - webnet
     restart: always
+  pgadmin:
+    image: dpage/pgadmin4
+    restart: always
+    ports:
+      - '8080:80'
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    volumes:
+      - inventory_pg:/var/lib/pgadmin
+    networks:
+      - webnet
 volumes:
   inventory: {}
+  inventory_pg: {}
 networks:
   webnet:

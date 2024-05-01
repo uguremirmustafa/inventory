@@ -13,6 +13,7 @@ import (
 
 	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/uguremirmustafa/inventory/db"
+	logging "github.com/uguremirmustafa/inventory/log"
 	"golang.org/x/oauth2"
 )
 
@@ -100,13 +101,13 @@ func handleCallbackGoogle(q *db.Queries, c *Config) http.Handler {
 	})
 }
 
-func handleMe(q *db.Queries, c *Config) http.Handler {
+func handleMe(q *db.Queries, c *Config, l logging.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		value := ctx.Value(ctxUserID).(string)
 		userID, err := strconv.Atoi(value)
 		if err != nil {
-			redirectToLogin(w, r)
+			redirectToLogin(w, r, l)
 		}
 
 		user, err := q.GetUser(ctx, int64(userID))
@@ -180,39 +181,43 @@ func verifyToken(tokenString string, secret []byte, myClaims *MyCustomClaims) er
 	return nil
 }
 
-func authenticateMiddleware(c *Config, next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Get JWT token from the cookie
-		cookie, err := r.Cookie(c.jwtCookieKey)
-		if err != nil {
-			fmt.Println("no cookie found on request")
-			redirectToLogin(w, r)
-			return
-		}
+func authMiddleware(c *Config, logger logging.Logger) Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Get JWT token from the cookie
+			cookie, err := r.Cookie(c.jwtCookieKey)
+			if err != nil {
+				logger.Warnf("no cookie found on request")
+				redirectToLogin(w, r, logger)
+				return
+			}
 
-		// Validate JWT token
-		tokenString := cookie.Value
-		claims := &MyCustomClaims{}
-		err = verifyToken(tokenString, []byte(c.jwtSecret), claims)
-		if err != nil {
-			redirectToLogin(w, r)
-			return
-		}
+			// Validate JWT token
+			tokenString := cookie.Value
+			claims := &MyCustomClaims{}
+			err = verifyToken(tokenString, []byte(c.jwtSecret), claims)
+			if err != nil {
+				logger.Warnf("token verification failed. token: %s", tokenString)
+				redirectToLogin(w, r, logger)
+				return
+			}
 
-		// Check token expiry
-		if time.Unix(claims.ExpiresAt.Unix(), 0).Before(time.Now()) {
-			redirectToLogin(w, r)
-			return
-		}
+			// Check token expiry
+			if time.Unix(claims.ExpiresAt.Unix(), 0).Before(time.Now()) {
+				logger.Warnf("token expired. token: %s", tokenString)
+				redirectToLogin(w, r, logger)
+				return
+			}
 
-		// JWT token is valid, proceed with the next handler
-		ctx := context.WithValue(r.Context(), ctxUserID, claims.Subject)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
+			// JWT token is valid, proceed with the next handler
+			ctx := context.WithValue(r.Context(), ctxUserID, claims.Subject)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
 }
 
-func redirectToLogin(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("redirecting to login")
+func redirectToLogin(w http.ResponseWriter, r *http.Request, logger logging.Logger) {
+	logger.Infof("redirecting to login")
 	http.Redirect(w, r, "/v1/auth/login", http.StatusSeeOther)
 }
 

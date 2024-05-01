@@ -1,0 +1,11 @@
+[INFO] [2024-05-01 11:49:25] Starting application...
+[INFO] [2024-05-01 12:08:27] Starting application...
+[INFO] [2024-05-01 12:08:27] listening on :9000
+
+[INFO] [2024-05-01 12:08:51] Incoming request: GET /
+[INFO] [2024-05-01 12:08:51] Request processed in 139.88µs
+[INFO] [2024-05-01 12:08:51] Incoming request: GET /favicon.ico
+[INFO] [2024-05-01 12:08:51] Request processed in 101.03µs
+[INFO] [2024-05-01 12:09:09] Incoming request: GET /favicon.ico
+[INFO] [2024-05-01 12:09:09] Request processed in 89.45µs
+[INFO] [2024-05-01 12:10:30] Server stopped gracefully

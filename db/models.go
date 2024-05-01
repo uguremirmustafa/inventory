@@ -8,6 +8,57 @@ import (
 	"database/sql"
 )
 
+type Item struct {
+	ID             int64          `db:"id" json:"id"`
+	Name           string         `db:"name" json:"name"`
+	Description    sql.NullString `db:"description" json:"description"`
+	UserID         int64          `db:"user_id" json:"user_id"`
+	ItemTypeID     int64          `db:"item_type_id" json:"item_type_id"`
+	ManufacturerID sql.NullInt64  `db:"manufacturer_id" json:"manufacturer_id"`
+}
+
+type ItemImage struct {
+	ID       int64  `db:"id" json:"id"`
+	ItemID   int64  `db:"item_id" json:"item_id"`
+	ImageUrl string `db:"image_url" json:"image_url"`
+}
+
+type ItemInfo struct {
+	ID               int64          `db:"id" json:"id"`
+	ItemID           int64          `db:"item_id" json:"item_id"`
+	PurchaseDate     sql.NullTime   `db:"purchase_date" json:"purchase_date"`
+	ExpirationDate   sql.NullTime   `db:"expiration_date" json:"expiration_date"`
+	LastUsed         sql.NullTime   `db:"last_used" json:"last_used"`
+	PurchaseLocation sql.NullString `db:"purchase_location" json:"purchase_location"`
+	Price            sql.NullInt64  `db:"price" json:"price"`
+	LocationID       sql.NullInt64  `db:"location_id" json:"location_id"`
+}
+
+type ItemType struct {
+	ID   int64  `db:"id" json:"id"`
+	Name string `db:"name" json:"name"`
+}
+
+type Location struct {
+	ID          int64          `db:"id" json:"id"`
+	Name        string         `db:"name" json:"name"`
+	ImageUrl    sql.NullString `db:"image_url" json:"image_url"`
+	Description sql.NullString `db:"description" json:"description"`
+}
+
+type Manufacturer struct {
+	ID          int64          `db:"id" json:"id"`
+	Name        string         `db:"name" json:"name"`
+	LogoUrl     sql.NullString `db:"logo_url" json:"logo_url"`
+	Description sql.NullString `db:"description" json:"description"`
+}
+
+type RelatedItem struct {
+	ID            int64 `db:"id" json:"id"`
+	ItemID        int64 `db:"item_id" json:"item_id"`
+	RelatedItemID int64 `db:"related_item_id" json:"related_item_id"`
+}
+
 type User struct {
 	ID     int64          `db:"id" json:"id"`
 	Name   string         `db:"name" json:"name"`

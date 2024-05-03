@@ -7,13 +7,13 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
 
 	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/uguremirmustafa/inventory/db"
-	logging "github.com/uguremirmustafa/inventory/log"
 	"golang.org/x/oauth2"
 )
 
@@ -42,7 +42,7 @@ func handleCallbackGoogle(q *db.Queries, c *Config) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		state := r.FormValue("state")
 		if state != c.oauthStateString {
-			fmt.Println("Invalid oauth state")
+			slog.Error("Invalid oauth state")
 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 			return
 		}
@@ -50,7 +50,7 @@ func handleCallbackGoogle(q *db.Queries, c *Config) http.Handler {
 		code := r.FormValue("code")
 		token, err := c.googleOauthConfig.Exchange(context.Background(), code)
 		if err != nil {
-			fmt.Printf("Error exchanging code: %s\n", err.Error())
+			slog.Error("Error exchanging code: %s", err.Error())
 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 			return
 		}
@@ -58,7 +58,7 @@ func handleCallbackGoogle(q *db.Queries, c *Config) http.Handler {
 		// Use the access token to fetch user info
 		userInfo, err := getUserInfo(token)
 		if err != nil {
-			fmt.Printf("Error getting user info: %s\n", err.Error())
+			slog.Error("Error getting user info: %s", err.Error())
 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 			return
 		}
@@ -66,7 +66,7 @@ func handleCallbackGoogle(q *db.Queries, c *Config) http.Handler {
 		// Check if the user exists in the database
 		user, err := q.GetUserByEmail(context.Background(), userInfo.Email)
 		if err != nil {
-			fmt.Println("user not found, trying to insert")
+			slog.Error("user not found, trying to insert")
 			var u = db.CreateUserParams{
 				Name:   userInfo.Name,
 				Email:  userInfo.Email,
@@ -74,7 +74,7 @@ func handleCallbackGoogle(q *db.Queries, c *Config) http.Handler {
 			}
 			user, err = q.CreateUser(context.Background(), u)
 			if err != nil {
-				fmt.Println(err)
+				slog.Error("Failed to create user")
 				http.Error(w, "Failed to create user", http.StatusInternalServerError)
 				return
 			}
@@ -83,6 +83,7 @@ func handleCallbackGoogle(q *db.Queries, c *Config) http.Handler {
 		// Create jwt token
 		jwtToken, err := createJWTToken(int(user.ID), user.Email, []byte(c.jwtSecret))
 		if err != nil {
+			slog.Error("Failed to create token")
 			http.Error(w, "Failed to create token", http.StatusInternalServerError)
 			return
 		}
@@ -101,17 +102,19 @@ func handleCallbackGoogle(q *db.Queries, c *Config) http.Handler {
 	})
 }
 
-func handleMe(q *db.Queries, c *Config, l logging.Logger) http.Handler {
+func handleMe(q *db.Queries, c *Config) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		value := ctx.Value(ctxUserID).(string)
 		userID, err := strconv.Atoi(value)
 		if err != nil {
-			redirectToLogin(w, r, l)
+			slog.Error("Cannot convert userID: ", userID)
+			redirectToLogin(w, r)
 		}
 
 		user, err := q.GetUser(ctx, int64(userID))
 		if err != nil {
+			slog.Error("user not found. Email: %s, ID: %v", user.Email, user.ID)
 			encode(w, http.StatusNotFound, "user not found")
 			return
 		}
@@ -128,6 +131,7 @@ func getUserInfo(token *oauth2.Token) (*UserInfoResponse, error) {
 	// Make request to Google UserInfo endpoint
 	response, err := httpClient.Get("https://www.googleapis.com/oauth2/v3/userinfo")
 	if err != nil {
+		slog.Error("getUserInfo - API call to google", err.Error())
 		return nil, err
 	}
 	defer response.Body.Close()
@@ -181,14 +185,14 @@ func verifyToken(tokenString string, secret []byte, myClaims *MyCustomClaims) er
 	return nil
 }
 
-func authMiddleware(c *Config, logger logging.Logger) Middleware {
+func authMiddleware(c *Config) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Get JWT token from the cookie
 			cookie, err := r.Cookie(c.jwtCookieKey)
 			if err != nil {
-				logger.Warnf("no cookie found on request")
-				redirectToLogin(w, r, logger)
+				slog.Warn("no cookie found on request")
+				redirectToLogin(w, r)
 				return
 			}
 
@@ -197,15 +201,15 @@ func authMiddleware(c *Config, logger logging.Logger) Middleware {
 			claims := &MyCustomClaims{}
 			err = verifyToken(tokenString, []byte(c.jwtSecret), claims)
 			if err != nil {
-				logger.Warnf("token verification failed. token: %s", tokenString)
-				redirectToLogin(w, r, logger)
+				slog.Warn("token verification failed. token: %s", tokenString)
+				redirectToLogin(w, r)
 				return
 			}
 
 			// Check token expiry
 			if time.Unix(claims.ExpiresAt.Unix(), 0).Before(time.Now()) {
-				logger.Warnf("token expired. token: %s", tokenString)
-				redirectToLogin(w, r, logger)
+				slog.Warn("token expired. token: %s", tokenString)
+				redirectToLogin(w, r)
 				return
 			}
 
@@ -216,8 +220,8 @@ func authMiddleware(c *Config, logger logging.Logger) Middleware {
 	}
 }
 
-func redirectToLogin(w http.ResponseWriter, r *http.Request, logger logging.Logger) {
-	logger.Infof("redirecting to login")
+func redirectToLogin(w http.ResponseWriter, r *http.Request) {
+	slog.Info("redirecting to login")
 	http.Redirect(w, r, "/v1/auth/login", http.StatusSeeOther)
 }
 

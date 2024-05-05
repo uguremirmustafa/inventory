@@ -185,3 +185,123 @@ date="2024/05/05 08:58:38" level=DEBUG msg="Request time" took=1.432367ms
 date="2024/05/05 08:58:38" level=DEBUG msg="Incoming request" request.method=GET request.path=/favicon.ico
 date="2024/05/05 08:58:38" level=DEBUG msg="Request time" took=93.2µs
 date="2024/05/05 08:58:40" level=INFO msg="Server stopped gracefully"
+date="2024/05/05 11:15:03" level=INFO msg="Starting application..."
+date="2024/05/05 11:15:03" level=INFO msg="server is listening" port=:9000
+date="2024/05/05 11:15:14" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/auth/login
+date="2024/05/05 11:15:14" level=DEBUG msg="Request time" took=172.261µs
+date="2024/05/05 11:15:15" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/auth/callback
+date="2024/05/05 11:15:15" level=DEBUG msg="Request time" took=483.360793ms
+date="2024/05/05 11:15:16" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/me
+date="2024/05/05 11:15:16" level=DEBUG msg="Request time" took=1.524119ms
+date="2024/05/05 11:15:16" level=DEBUG msg="Incoming request" request.method=GET request.path=/favicon.ico
+date="2024/05/05 11:15:16" level=DEBUG msg="Request time" took=57.36µs
+date="2024/05/05 11:16:20" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/me
+date="2024/05/05 11:16:20" level=DEBUG msg="Request time" took=1.958517ms
+date="2024/05/05 11:16:21" level=DEBUG msg="Incoming request" request.method=GET request.path=/favicon.ico
+date="2024/05/05 11:16:21" level=DEBUG msg="Request time" took=47.296µs
+date="2024/05/05 11:16:36" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/me
+date="2024/05/05 11:16:36" level=DEBUG msg="Request time" took=1.67363ms
+date="2024/05/05 11:16:36" level=DEBUG msg="Incoming request" request.method=GET request.path=/favicon.ico
+date="2024/05/05 11:16:36" level=DEBUG msg="Request time" took=48.755µs
+date="2024/05/05 11:17:10" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/me
+date="2024/05/05 11:17:10" level=DEBUG msg="Request time" took=1.424255ms
+date="2024/05/05 11:17:10" level=DEBUG msg="Incoming request" request.method=GET request.path=/favicon.ico
+date="2024/05/05 11:17:10" level=DEBUG msg="Request time" took=56.763µs
+date="2024/05/05 11:37:42" level=INFO msg="Server stopped gracefully"
+date="2024/05/05 11:46:17" level=INFO msg="Starting application..."
+date="2024/05/05 11:46:17" level=INFO msg="server is listening" port=:9000
+date="2024/05/05 11:46:25" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/item-type
+date="2024/05/05 11:46:25" level=DEBUG msg="Request time" took=3.341634ms
+date="2024/05/05 11:46:25" level=DEBUG msg="Incoming request" request.method=GET request.path=/favicon.ico
+date="2024/05/05 11:46:25" level=DEBUG msg="Request time" took=66.471µs
+date="2024/05/05 11:46:33" level=INFO msg="Server stopped gracefully"
+date="2024/05/05 11:46:44" level=INFO msg="Starting application..."
+date="2024/05/05 11:46:44" level=INFO msg="server is listening" port=:9000
+date="2024/05/05 11:46:45" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/item-type
+date="2024/05/05 11:46:45" level=DEBUG msg="Request time" took=3.711606ms
+date="2024/05/05 11:46:45" level=DEBUG msg="Incoming request" request.method=GET request.path=/favicon.ico
+date="2024/05/05 11:46:45" level=DEBUG msg="Request time" took=162.121µs
+date="2024/05/05 11:47:16" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/item-type
+date="2024/05/05 11:47:16" level=DEBUG msg="Request time" took=1.197655ms
+date="2024/05/05 11:47:16" level=DEBUG msg="Incoming request" request.method=GET request.path=/favicon.ico
+date="2024/05/05 11:47:16" level=DEBUG msg="Request time" took=92.411µs
+date="2024/05/05 12:04:21" level=INFO msg="Server stopped gracefully"
+date="2024/05/05 12:04:21" level=INFO msg="Starting application..."
+date="2024/05/05 12:04:21" level=INFO msg="server is listening" port=:9000
+date="2024/05/05 12:04:23" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/item-type
+date="2024/05/05 12:04:23" level=DEBUG msg="Request time" took=2.007811ms
+date="2024/05/05 12:04:23" level=DEBUG msg="Incoming request" request.method=GET request.path=/favicon.ico
+date="2024/05/05 12:04:23" level=DEBUG msg="Request time" took=68.73µs
+date="2024/05/05 12:06:35" level=INFO msg="Server stopped gracefully"
+date="2024/05/05 12:06:36" level=INFO msg="Starting application..."
+date="2024/05/05 12:06:36" level=INFO msg="server is listening" port=:9000
+date="2024/05/05 12:06:38" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/item-type
+date="2024/05/05 12:06:38" level=DEBUG msg="Request time" took=2.416013ms
+date="2024/05/05 12:06:38" level=DEBUG msg="Incoming request" request.method=GET request.path=/favicon.ico
+date="2024/05/05 12:06:38" level=DEBUG msg="Request time" took=70.25µs
+date="2024/05/05 12:06:40" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/item-type
+date="2024/05/05 12:06:40" level=DEBUG msg="Request time" took=1.050026ms
+date="2024/05/05 12:06:40" level=DEBUG msg="Incoming request" request.method=GET request.path=/favicon.ico
+date="2024/05/05 12:06:40" level=DEBUG msg="Request time" took=177.021µs
+date="2024/05/05 12:07:58" level=INFO msg="Server stopped gracefully"
+date="2024/05/05 12:07:59" level=INFO msg="Starting application..."
+date="2024/05/05 12:07:59" level=INFO msg="server is listening" port=:9000
+date="2024/05/05 12:08:01" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/item-type
+date="2024/05/05 12:08:01" level=DEBUG msg="Request time" took=2.536002ms
+date="2024/05/05 12:08:01" level=DEBUG msg="Incoming request" request.method=GET request.path=/favicon.ico
+date="2024/05/05 12:08:01" level=DEBUG msg="Request time" took=89.6µs
+date="2024/05/05 12:08:03" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/item-type
+date="2024/05/05 12:08:03" level=DEBUG msg="Request time" took=987.455µs
+date="2024/05/05 12:08:03" level=DEBUG msg="Incoming request" request.method=GET request.path=/favicon.ico
+date="2024/05/05 12:08:03" level=DEBUG msg="Request time" took=80.02µs
+date="2024/05/05 12:11:58" level=INFO msg="Server stopped gracefully"
+date="2024/05/05 12:11:59" level=INFO msg="Starting application..."
+date="2024/05/05 12:11:59" level=INFO msg="server is listening" port=:9000
+date="2024/05/05 12:12:01" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/item-type
+date="2024/05/05 12:12:01" level=DEBUG msg="Request time" took=1.673228ms
+date="2024/05/05 12:12:01" level=DEBUG msg="Incoming request" request.method=GET request.path=/favicon.ico
+date="2024/05/05 12:12:01" level=DEBUG msg="Request time" took=171.011µs
+date="2024/05/05 12:12:02" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/item-type
+date="2024/05/05 12:12:02" level=DEBUG msg="Request time" took=973.584µs
+date="2024/05/05 12:12:02" level=DEBUG msg="Incoming request" request.method=GET request.path=/favicon.ico
+date="2024/05/05 12:12:02" level=DEBUG msg="Request time" took=82.41µs
+date="2024/05/05 12:12:02" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/item-type
+date="2024/05/05 12:12:02" level=DEBUG msg="Request time" took=986.975µs
+date="2024/05/05 12:12:02" level=DEBUG msg="Incoming request" request.method=GET request.path=/favicon.ico
+date="2024/05/05 12:12:02" level=DEBUG msg="Request time" took=113.751µs
+date="2024/05/05 12:12:02" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/item-type
+date="2024/05/05 12:12:02" level=DEBUG msg="Request time" took=856.794µs
+date="2024/05/05 12:12:02" level=DEBUG msg="Incoming request" request.method=GET request.path=/favicon.ico
+date="2024/05/05 12:12:02" level=DEBUG msg="Request time" took=66.33µs
+date="2024/05/05 12:12:02" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/item-type
+date="2024/05/05 12:12:02" level=DEBUG msg="Request time" took=815.304µs
+date="2024/05/05 12:12:02" level=DEBUG msg="Incoming request" request.method=GET request.path=/favicon.ico
+date="2024/05/05 12:12:02" level=DEBUG msg="Request time" took=60.74µs
+date="2024/05/05 12:12:04" level=INFO msg="Server stopped gracefully"
+date="2024/05/05 12:12:06" level=INFO msg="Starting application..."
+date="2024/05/05 12:12:06" level=INFO msg="server is listening" port=:9000
+date="2024/05/05 12:14:33" level=INFO msg="Server stopped gracefully"
+date="2024/05/05 12:14:34" level=INFO msg="Starting application..."
+date="2024/05/05 12:14:34" level=INFO msg="server is listening" port=:9000
+date="2024/05/05 12:14:35" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/item-type
+date="2024/05/05 12:14:35" level=DEBUG msg="Request time" took=2.400091ms
+date="2024/05/05 12:14:35" level=DEBUG msg="Incoming request" request.method=GET request.path=/favicon.ico
+date="2024/05/05 12:14:35" level=DEBUG msg="Request time" took=56.34µs
+date="2024/05/05 12:14:55" level=INFO msg="Server stopped gracefully"
+date="2024/05/05 12:14:56" level=INFO msg="Starting application..."
+date="2024/05/05 12:14:56" level=INFO msg="server is listening" port=:9000
+date="2024/05/05 12:14:57" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/item-type
+date="2024/05/05 12:14:57" level=DEBUG msg="Request time" took=2.22058ms
+date="2024/05/05 12:14:57" level=DEBUG msg="Incoming request" request.method=GET request.path=/favicon.ico
+date="2024/05/05 12:14:57" level=DEBUG msg="Request time" took=64.27µs
+date="2024/05/05 12:15:29" level=INFO msg="Server stopped gracefully"
+date="2024/05/05 12:15:30" level=INFO msg="Starting application..."
+date="2024/05/05 12:15:30" level=INFO msg="server is listening" port=:9000
+date="2024/05/05 12:15:32" level=INFO msg="Server stopped gracefully"
+date="2024/05/05 12:15:56" level=INFO msg="Starting application..."
+date="2024/05/05 12:15:56" level=INFO msg="server is listening" port=:9000
+date="2024/05/05 12:15:59" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/item-type
+date="2024/05/05 12:15:59" level=DEBUG msg="Request time" took=2.460751ms
+date="2024/05/05 12:15:59" level=DEBUG msg="Incoming request" request.method=GET request.path=/favicon.ico
+date="2024/05/05 12:15:59" level=DEBUG msg="Request time" took=108.73µs
+date="2024/05/05 12:17:35" level=INFO msg="Server stopped gracefully"

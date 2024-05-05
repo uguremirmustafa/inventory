@@ -104,6 +104,7 @@ func addRoutes(mux *http.ServeMux, q *db.Queries) {
 	mux.Handle("GET /v1/auth/login", chain.Then(handleLoginGoogle()))
 	mux.Handle("GET /v1/auth/callback", chain.Then(handleCallbackGoogle(q)))
 	mux.Handle("GET /v1/me", authChain.Then(handleMe(q)))
+	mux.Handle("GET /v1/item-type", authChain.Then(handleItemTypeList(q)))
 }
 
 func encode[T any](w http.ResponseWriter, status int, v T) error {

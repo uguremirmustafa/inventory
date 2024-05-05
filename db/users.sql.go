@@ -14,7 +14,7 @@ const createUser = `-- name: CreateUser :one
 INSERT INTO
     users (name, email, avatar)
 VALUES
-    ($1, $2, $3) RETURNING id, name, email, avatar, token
+    ($1, $2, $3) RETURNING id, name, email, avatar, token, created_at, updated_at, deleted_at
 `
 
 type CreateUserParams struct {
@@ -32,6 +32,9 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.Email,
 		&i.Avatar,
 		&i.Token,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }
@@ -50,7 +53,7 @@ func (q *Queries) DeleteUser(ctx context.Context, id int64) error {
 
 const getUser = `-- name: GetUser :one
 SELECT
-    id, name, email, avatar, token
+    id, name, email, avatar, token, created_at, updated_at, deleted_at
 FROM
     users
 WHERE
@@ -68,13 +71,16 @@ func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
 		&i.Email,
 		&i.Avatar,
 		&i.Token,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
 SELECT
-    id, name, email, avatar, token
+    id, name, email, avatar, token, created_at, updated_at, deleted_at
 FROM
     users
 WHERE
@@ -92,6 +98,9 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.Email,
 		&i.Avatar,
 		&i.Token,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }

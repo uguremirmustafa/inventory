@@ -7,7 +7,7 @@ import (
 	"github.com/uguremirmustafa/inventory/db"
 )
 
-func handleGreet(q *db.Queries, c *Config) http.Handler {
+func handleGreet(q *db.Queries) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user, err := q.GetUser(context.Background(), 1)
 		if err != nil {

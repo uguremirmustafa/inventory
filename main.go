@@ -7,9 +7,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"github.com/uguremirmustafa/inventory/api"
+	"github.com/uguremirmustafa/inventory/internal/config"
 )
 
 func init() {
@@ -20,7 +20,7 @@ func init() {
 
 	logHandler := slog.NewTextHandler(f, &slog.HandlerOptions{
 		Level:     slog.LevelDebug,
-		AddSource: true,
+		AddSource: false,
 		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
 			if a.Key == slog.TimeKey {
 				a.Key = "date"
@@ -37,9 +37,9 @@ func init() {
 func main() {
 	slog.Info("Starting application...")
 
-	err := godotenv.Load()
+	err := config.LoadConfig()
 	if err != nil {
-		slog.Error("Error loading .env file")
+		slog.Error("Error loading config.json file")
 	}
 
 	ctx := context.Background()

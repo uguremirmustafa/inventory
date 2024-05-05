@@ -14,7 +14,9 @@ import (
 
 	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/uguremirmustafa/inventory/db"
+	"github.com/uguremirmustafa/inventory/internal/config"
 	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 )
 
 type UserInfoResponse struct {
@@ -32,25 +34,33 @@ const (
 	ctxUserID CtxUserID = "userID"
 )
 
-func handleLoginGoogle(c *Config) http.Handler {
+func handleLoginGoogle() http.Handler {
+	c := config.GetConfig()
+	googleOauthConfig := getGoogleAuthConfig(c)
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		url := c.googleOauthConfig.AuthCodeURL(c.oauthStateString)
+		url := googleOauthConfig.AuthCodeURL(c.GoogleOauthStateString)
 		http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 	})
 }
-func handleCallbackGoogle(q *db.Queries, c *Config) http.Handler {
+func handleCallbackGoogle(q *db.Queries) http.Handler {
+	c := config.GetConfig()
+	googleOauthConfig := getGoogleAuthConfig(c)
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		state := r.FormValue("state")
-		if state != c.oauthStateString {
+
+		if state != c.GoogleOauthStateString {
 			slog.Error("Invalid oauth state")
 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 			return
 		}
 
 		code := r.FormValue("code")
-		token, err := c.googleOauthConfig.Exchange(context.Background(), code)
+
+		token, err := googleOauthConfig.Exchange(context.Background(), code)
 		if err != nil {
-			slog.Error("Error exchanging code: %s", err.Error())
+			slog.Error("Error exchanging code", slog.String("error", err.Error()), slog.String("code", code))
 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 			return
 		}
@@ -58,7 +68,7 @@ func handleCallbackGoogle(q *db.Queries, c *Config) http.Handler {
 		// Use the access token to fetch user info
 		userInfo, err := getUserInfo(token)
 		if err != nil {
-			slog.Error("Error getting user info: %s", err.Error())
+			slog.Error("Error getting user info", slog.String("error", err.Error()))
 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 			return
 		}
@@ -81,7 +91,7 @@ func handleCallbackGoogle(q *db.Queries, c *Config) http.Handler {
 		}
 
 		// Create jwt token
-		jwtToken, err := createJWTToken(int(user.ID), user.Email, []byte(c.jwtSecret))
+		jwtToken, err := createJWTToken(int(user.ID), user.Email, []byte(c.JwtSecret))
 		if err != nil {
 			slog.Error("Failed to create token")
 			http.Error(w, "Failed to create token", http.StatusInternalServerError)
@@ -90,29 +100,22 @@ func handleCallbackGoogle(q *db.Queries, c *Config) http.Handler {
 
 		// Set JWT token as a cookie
 		http.SetCookie(w, &http.Cookie{
-			Name:     c.jwtCookieKey,
+			Name:     c.JwtCookieKey,
 			Value:    jwtToken,
 			HttpOnly: true,
 			Expires:  time.Now().UTC().Add(24 * time.Hour),
 			Path:     "/",
 		})
 
-		// msg := fmt.Sprintf("Welcome to the homeventory %s", user.Name)
 		http.Redirect(w, r, "/v1/me", http.StatusTemporaryRedirect)
 	})
 }
 
-func handleMe(q *db.Queries, c *Config) http.Handler {
+func handleMe(q *db.Queries) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		value := ctx.Value(ctxUserID).(string)
-		userID, err := strconv.Atoi(value)
-		if err != nil {
-			slog.Error("Cannot convert userID: ", userID)
-			redirectToLogin(w, r)
-		}
+		userID := getUserID(w, r)
 
-		user, err := q.GetUser(ctx, int64(userID))
+		user, err := q.GetUser(r.Context(), userID)
 		if err != nil {
 			slog.Error("user not found. Email: %s, ID: %v", user.Email, user.ID)
 			encode(w, http.StatusNotFound, "user not found")
@@ -123,6 +126,17 @@ func handleMe(q *db.Queries, c *Config) http.Handler {
 	})
 }
 
+func getUserID(w http.ResponseWriter, r *http.Request) int64 {
+	ctx := r.Context()
+	value := ctx.Value(ctxUserID).(string)
+	userID, err := strconv.Atoi(value)
+	if err != nil {
+		slog.Error("Cannot convert userID: ", slog.Int("userID", userID))
+		redirectToLogin(w, r)
+	}
+	return int64(userID)
+}
+
 // Create HTTP client with the access token
 func getUserInfo(token *oauth2.Token) (*UserInfoResponse, error) {
 	// Create HTTP client with the access token
@@ -131,7 +145,7 @@ func getUserInfo(token *oauth2.Token) (*UserInfoResponse, error) {
 	// Make request to Google UserInfo endpoint
 	response, err := httpClient.Get("https://www.googleapis.com/oauth2/v3/userinfo")
 	if err != nil {
-		slog.Error("getUserInfo - API call to google", err.Error())
+		slog.Error("Failed to call to google for userinfo", slog.String("error", err.Error()))
 		return nil, err
 	}
 	defer response.Body.Close()
@@ -185,11 +199,12 @@ func verifyToken(tokenString string, secret []byte, myClaims *MyCustomClaims) er
 	return nil
 }
 
-func authMiddleware(c *Config) Middleware {
+func authMiddleware() Middleware {
+	c := config.GetConfig()
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Get JWT token from the cookie
-			cookie, err := r.Cookie(c.jwtCookieKey)
+			cookie, err := r.Cookie(c.JwtCookieKey)
 			if err != nil {
 				slog.Warn("no cookie found on request")
 				redirectToLogin(w, r)
@@ -199,16 +214,16 @@ func authMiddleware(c *Config) Middleware {
 			// Validate JWT token
 			tokenString := cookie.Value
 			claims := &MyCustomClaims{}
-			err = verifyToken(tokenString, []byte(c.jwtSecret), claims)
+			err = verifyToken(tokenString, []byte(c.JwtSecret), claims)
 			if err != nil {
-				slog.Warn("token verification failed. token: %s", tokenString)
+				slog.Warn("token verification failed.", slog.String("token", tokenString))
 				redirectToLogin(w, r)
 				return
 			}
 
 			// Check token expiry
 			if time.Unix(claims.ExpiresAt.Unix(), 0).Before(time.Now()) {
-				slog.Warn("token expired. token: %s", tokenString)
+				slog.Warn("token expired.", slog.String("token", tokenString))
 				redirectToLogin(w, r)
 				return
 			}
@@ -238,4 +253,16 @@ func getUserJson(dbUser db.User) UserResponse {
 		Avatar: dbUser.Avatar.String,
 	}
 	return responseData
+}
+
+func getGoogleAuthConfig(c *config.Config) *oauth2.Config {
+	googleOauthConfig := &oauth2.Config{
+		ClientID:     c.GoogleClientID,
+		ClientSecret: c.GoogleClientSecret,
+		RedirectURL:  c.GoogleAuthRedirectURL,
+		Scopes:       []string{"openid", "profile", "email"},
+		Endpoint:     google.Endpoint,
+	}
+
+	return googleOauthConfig
 }

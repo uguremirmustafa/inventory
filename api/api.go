@@ -14,11 +14,20 @@ import (
 
 	"github.com/justinas/alice"
 	"github.com/uguremirmustafa/inventory/db"
+	"github.com/uguremirmustafa/inventory/internal/config"
 )
 
 func Run(ctx context.Context) error {
-
-	pgDB, err := NewPostgresDB("postgres://anomy:secret@localhost:5432/inventory?sslmode=disable")
+	c := config.GetConfig()
+	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
+		"password=%s dbname=%s sslmode=disable",
+		c.Database.Hostname,
+		c.Database.Port,
+		c.Database.User,
+		c.Database.Password,
+		c.Database.Name,
+	)
+	pgDB, err := NewPostgresDB(psqlInfo)
 	if err != nil {
 		panic(err)
 	}
@@ -29,10 +38,9 @@ func Run(ctx context.Context) error {
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt)
 	defer cancel()
 
-	c := NewConfig()
-	srv := NewServer(c, q)
+	srv := NewServer(q)
 	httpServer := &http.Server{
-		Addr:    ":9000",
+		Addr:    fmt.Sprintf(":%v", c.PORT),
 		Handler: srv,
 	}
 	go func() {
@@ -69,9 +77,9 @@ func NewPostgresDB(connStr string) (*sql.DB, error) {
 	return db, nil
 }
 
-func NewServer(c *Config, q *db.Queries) http.Handler {
+func NewServer(q *db.Queries) http.Handler {
 	mux := http.NewServeMux()
-	addRoutes(mux, q, c)
+	addRoutes(mux, q)
 	return mux
 }
 
@@ -81,21 +89,21 @@ type Middleware = func(http.Handler) http.Handler
 func logMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		slog.Info("Incoming request", slog.Group("request", slog.String("method", r.Method), slog.String("path", r.URL.Path)))
+		slog.Debug("Incoming request", slog.Group("request", slog.String("method", r.Method), slog.String("path", r.URL.Path)))
 		next.ServeHTTP(w, r)
-		slog.Info("Request time", slog.Duration("time", time.Since(start)))
+		slog.Debug("Request time", slog.Duration("took", time.Since(start)))
 	})
 }
 
-func addRoutes(mux *http.ServeMux, q *db.Queries, c *Config) {
+func addRoutes(mux *http.ServeMux, q *db.Queries) {
 	chain := alice.New(logMiddleware)
-	authChain := alice.New(logMiddleware, authMiddleware(c))
+	authChain := alice.New(logMiddleware, authMiddleware())
 
 	mux.Handle("GET /", chain.Then(handleHome()))
-	mux.Handle("POST /v1/users", chain.Then(handleGreet(q, c)))
-	mux.Handle("GET /v1/auth/login", chain.Then(handleLoginGoogle(c)))
-	mux.Handle("GET /v1/auth/callback", chain.Then(handleCallbackGoogle(q, c)))
-	mux.Handle("GET /v1/me", authChain.Then(handleMe(q, c)))
+	mux.Handle("POST /v1/users", chain.Then(handleGreet(q)))
+	mux.Handle("GET /v1/auth/login", chain.Then(handleLoginGoogle()))
+	mux.Handle("GET /v1/auth/callback", chain.Then(handleCallbackGoogle(q)))
+	mux.Handle("GET /v1/me", authChain.Then(handleMe(q)))
 }
 
 func encode[T any](w http.ResponseWriter, status int, v T) error {

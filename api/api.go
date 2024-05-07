@@ -104,10 +104,23 @@ func addRoutes(mux *http.ServeMux, q *db.Queries) {
 	mux.Handle("GET /v1/auth/login", chain.Then(handleLoginGoogle()))
 	mux.Handle("GET /v1/auth/callback", chain.Then(handleCallbackGoogle(q)))
 	mux.Handle("GET /v1/me", authChain.Then(handleMe(q)))
-	mux.Handle("GET /v1/item-type", authChain.Then(handleItemTypeList(q)))
+	mux.Handle("GET /v1/item-type", authChain.Then(handleListItemType(q)))
+	mux.Handle("GET /v1/manufacturer", authChain.Then(handleListManufacturer(q)))
+	mux.Handle("GET /v1/location", authChain.Then(handleListLocation(q)))
+	mux.Handle("GET /v1/item", authChain.Then(handleListUserItems(q)))
 }
 
-func encode[T any](w http.ResponseWriter, status int, v T) error {
+func handleHome() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, `
+		<div>
+			<a href="/v1/auth/login">Login with Google</a>
+			<a href="/v1/me">see me</a>
+		</div>`)
+	})
+}
+
+func encode(w http.ResponseWriter, status int, v interface{}) error {
 	w.WriteHeader(status)
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(v); err != nil {
@@ -122,14 +135,4 @@ func decode[T any](r *http.Request) (*T, error) {
 		return &v, fmt.Errorf("decode json: %w", err)
 	}
 	return &v, nil
-}
-
-func handleHome() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, `
-		<div>
-			<a href="/v1/auth/login">Login with Google</a>
-			<a href="/v1/me">see me</a>
-		</div>`)
-	})
 }

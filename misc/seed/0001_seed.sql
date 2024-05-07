@@ -5,8 +5,14 @@ ALTER SEQUENCE item_id_seq RESTART WITH 1;
 -- insert item types
 delete from item_type;
 ALTER SEQUENCE item_type_id_seq RESTART WITH 1;
-insert into item_type ("name") values('trousers');
-insert into item_type ("name") values('technological device');
+insert into item_type ("name") 
+values
+('trousers'),
+('technological device'),
+('furniture'),
+('kitchen-utilities');
+
+
 
 -- insert manufacturers
 delete from manufacturer;

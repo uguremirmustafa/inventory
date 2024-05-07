@@ -16,7 +16,7 @@ type ItemType struct {
 	DeletedAt *time.Time `json:"deleted_at"`
 }
 
-func handleItemTypeList(q *db.Queries) http.Handler {
+func handleListItemType(q *db.Queries) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		itemTypes, err := q.ListItemTypes(r.Context())
 		if err != nil {

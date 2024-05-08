@@ -8,6 +8,30 @@ import (
 	"github.com/uguremirmustafa/inventory/utils"
 )
 
+type ItemService struct {
+	q *db.Queries
+}
+
+func NewItemService(q *db.Queries) *ItemService {
+	return &ItemService{
+		q: q,
+	}
+}
+
+func (s *ItemService) HandleListUserItem(w http.ResponseWriter, r *http.Request) error {
+	userID := getUserID(w, r)
+	userItems, err := s.q.ListUserItems(r.Context(), userID)
+	if err != nil {
+		return NotFound()
+	}
+	var list []UserItemRow
+	for _, item := range userItems {
+		list = append(list, *getUserItemJson(item))
+	}
+	encode(w, http.StatusOK, list)
+	return nil
+}
+
 type UserItemRow struct {
 	ItemID              int64      `json:"item_id"`
 	ItemName            string     `json:"item_name"`
@@ -28,22 +52,6 @@ type UserItemRow struct {
 	LocationName        *string    `json:"location_name"`
 	LocationDescription *string    `json:"location_description"`
 	LocationImg         *string    `json:"location_img"`
-}
-
-func handleListUserItems(q *db.Queries) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		userID := getUserID(w, r)
-		userItems, err := q.ListUserItems(r.Context(), userID)
-		if err != nil {
-			encode(w, http.StatusNotFound, "no items found")
-		}
-
-		var list []UserItemRow
-		for _, item := range userItems {
-			list = append(list, *getUserItemJson(item))
-		}
-		encode(w, http.StatusOK, list)
-	})
 }
 
 func getUserItemJson(l db.ListUserItemsRow) *UserItemRow {

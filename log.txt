@@ -715,3 +715,108 @@ date="2024/05/07 21:12:03" level=DEBUG msg="Request time" took=6.377566ms
 date="2024/05/07 21:12:03" level=DEBUG msg="Incoming request" request.method=GET request.path=/favicon.ico
 date="2024/05/07 21:12:03" level=DEBUG msg="Request time" took=111.211µs
 date="2024/05/07 21:16:08" level=INFO msg="Server stopped gracefully"
+date="2024/05/08 21:24:16" level=INFO msg="Starting application..."
+date="2024/05/08 21:24:16" level=INFO msg="server is listening" port=:9000
+date="2024/05/08 21:25:13" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/me
+date="2024/05/08 21:25:13" level=WARN msg="no cookie found on request"
+date="2024/05/08 21:25:13" level=INFO msg="redirecting to login"
+date="2024/05/08 21:25:13" level=DEBUG msg="Request time" took=181.283µs
+date="2024/05/08 21:25:13" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/auth/login
+date="2024/05/08 21:25:13" level=DEBUG msg="Request time" took=168.193µs
+date="2024/05/08 21:25:28" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/auth/login
+date="2024/05/08 21:25:28" level=DEBUG msg="Request time" took=128.132µs
+date="2024/05/08 21:25:29" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/auth/callback
+date="2024/05/08 21:25:29" level=DEBUG msg="Request time" took=472.856641ms
+date="2024/05/08 21:25:29" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/me
+date="2024/05/08 21:25:29" level=DEBUG msg="Request time" took=1.025529ms
+date="2024/05/08 21:25:29" level=DEBUG msg="Incoming request" request.method=GET request.path=/favicon.ico
+date="2024/05/08 21:25:29" level=DEBUG msg="Request time" took=55.881µs
+date="2024/05/08 21:27:09" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/me
+date="2024/05/08 21:27:09" level=DEBUG msg="Request time" took=2.308015ms
+date="2024/05/08 21:27:09" level=DEBUG msg="Incoming request" request.method=GET request.path=/favicon.ico
+date="2024/05/08 21:27:09" level=DEBUG msg="Request time" took=100.391µs
+date="2024/05/08 21:27:11" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/me
+date="2024/05/08 21:27:11" level=DEBUG msg="Request time" took=1.779989ms
+date="2024/05/08 21:27:11" level=DEBUG msg="Incoming request" request.method=GET request.path=/favicon.ico
+date="2024/05/08 21:27:11" level=DEBUG msg="Request time" took=159.682µs
+date="2024/05/08 21:27:37" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/login
+date="2024/05/08 21:27:37" level=DEBUG msg="Request time" took=106.951µs
+date="2024/05/08 21:27:37" level=DEBUG msg="Incoming request" request.method=GET request.path=/favicon.ico
+date="2024/05/08 21:27:37" level=DEBUG msg="Request time" took=55.001µs
+date="2024/05/08 21:27:40" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/auth/login
+date="2024/05/08 21:27:40" level=DEBUG msg="Request time" took=127.091µs
+date="2024/05/08 21:27:41" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/auth/callback
+date="2024/05/08 21:27:41" level=DEBUG msg="Request time" took=382.628044ms
+date="2024/05/08 21:27:41" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/me
+date="2024/05/08 21:27:41" level=DEBUG msg="Request time" took=1.390005ms
+date="2024/05/08 21:27:41" level=DEBUG msg="Incoming request" request.method=GET request.path=/favicon.ico
+date="2024/05/08 21:27:41" level=DEBUG msg="Request time" took=75.791µs
+date="2024/05/08 21:28:23" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/me
+date="2024/05/08 21:28:23" level=WARN msg="no cookie found on request"
+date="2024/05/08 21:28:23" level=INFO msg="redirecting to login"
+date="2024/05/08 21:28:23" level=DEBUG msg="Request time" took=183.591µs
+date="2024/05/08 21:28:23" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/auth/login
+date="2024/05/08 21:28:23" level=DEBUG msg="Request time" took=77.07µs
+date="2024/05/08 21:28:25" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/me
+date="2024/05/08 21:28:25" level=WARN msg="no cookie found on request"
+date="2024/05/08 21:28:25" level=INFO msg="redirecting to login"
+date="2024/05/08 21:28:25" level=DEBUG msg="Request time" took=151.071µs
+date="2024/05/08 21:28:25" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/auth/login
+date="2024/05/08 21:28:25" level=DEBUG msg="Request time" took=135.521µs
+date="2024/05/08 21:29:18" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/me
+date="2024/05/08 21:29:18" level=DEBUG msg="Request time" took=1.573739ms
+date="2024/05/08 21:29:40" level=DEBUG msg="Incoming request" request.method=GET request.path=/
+date="2024/05/08 21:29:40" level=DEBUG msg="Request time" took=118.981µs
+date="2024/05/08 21:30:24" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/item_type
+date="2024/05/08 21:30:24" level=DEBUG msg="Request time" took=109.761µs
+date="2024/05/08 21:30:54" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/item_type
+date="2024/05/08 21:30:54" level=DEBUG msg="Request time" took=100.3µs
+date="2024/05/08 21:31:09" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/item-type
+date="2024/05/08 21:31:09" level=DEBUG msg="Request time" took=1.90087ms
+date="2024/05/08 21:32:07" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/manufacturer
+date="2024/05/08 21:32:07" level=DEBUG msg="Request time" took=2.425611ms
+date="2024/05/08 22:54:07" level=INFO msg="Starting application..."
+date="2024/05/08 22:54:07" level=INFO msg="server is listening" port=:9000
+date="2024/05/08 22:54:14" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/auth/login
+date="2024/05/08 22:54:14" level=DEBUG msg="Request time" took=106.04µs
+date="2024/05/08 22:54:14" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/auth/callback
+date="2024/05/08 22:54:15" level=DEBUG msg="Request time" took=508.320508ms
+date="2024/05/08 22:54:15" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/me
+date="2024/05/08 22:54:15" level=DEBUG msg="Request time" took=802.573µs
+date="2024/05/08 22:54:15" level=DEBUG msg="Incoming request" request.method=GET request.path=/favicon.ico
+date="2024/05/08 22:54:15" level=DEBUG msg="Request time" took=58.12µs
+date="2024/05/08 22:56:44" level=INFO msg="Server stopped gracefully"
+date="2024/05/08 23:30:40" level=INFO msg="Starting application..."
+date="2024/05/08 23:30:40" level=INFO msg="server is listening" port=:9000
+date="2024/05/08 23:31:15" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/item
+date="2024/05/08 23:31:15" level=DEBUG msg="Request time" took=6.569415ms
+date="2024/05/08 23:31:31" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/item
+date="2024/05/08 23:31:31" level=DEBUG msg="Request time" took=2.549104ms
+date="2024/05/08 23:32:02" level=INFO msg="Server stopped gracefully"
+date="2024/05/08 23:32:03" level=INFO msg="Starting application..."
+date="2024/05/08 23:32:03" level=INFO msg="server is listening" port=:9000
+date="2024/05/08 23:32:07" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/item
+date="2024/05/08 23:32:07" level=DEBUG msg="Request time" took=3.396658ms
+date="2024/05/09 00:02:46" level=INFO msg="Server stopped gracefully"
+date="2024/05/09 00:02:47" level=INFO msg="Starting application..."
+date="2024/05/09 00:02:47" level=INFO msg="server is listening" port=:9000
+date="2024/05/09 00:03:45" level=INFO msg="Server stopped gracefully"
+date="2024/05/09 00:03:46" level=INFO msg="Starting application..."
+date="2024/05/09 00:03:46" level=INFO msg="server is listening" port=:9000
+date="2024/05/09 00:03:50" level=DEBUG msg="Incoming request" request.method=POST request.path=/v1/item-type
+date="2024/05/09 00:03:50" level=ERROR msg="HTTP API Error" err="api error: 400" path=/v1/item-type
+date="2024/05/09 00:03:50" level=DEBUG msg="Request time" took=397.172µs
+date="2024/05/09 00:04:05" level=DEBUG msg="Incoming request" request.method=POST request.path=/v1/item-type
+date="2024/05/09 00:04:05" level=DEBUG msg="Request time" took=3.597608ms
+date="2024/05/09 00:04:40" level=DEBUG msg="Incoming request" request.method=POST request.path=/v1/item-type
+date="2024/05/09 00:04:40" level=ERROR msg="HTTP API Error" err="api error: 400" path=/v1/item-type
+date="2024/05/09 00:04:40" level=DEBUG msg="Request time" took=264.811µs
+date="2024/05/09 00:04:44" level=DEBUG msg="Incoming request" request.method=POST request.path=/v1/item-type
+date="2024/05/09 00:04:44" level=ERROR msg="HTTP API Error" err="pq: duplicate key value violates unique constraint \"item_type_name_key\"" path=/v1/item-type
+date="2024/05/09 00:04:44" level=DEBUG msg="Request time" took=1.801159ms
+date="2024/05/09 00:05:20" level=INFO msg="Server stopped gracefully"
+date="2024/05/09 00:07:01" level=INFO msg="Starting application..."
+date="2024/05/09 00:07:01" level=INFO msg="server is listening" port=:9000
+date="2024/05/09 00:07:14" level=DEBUG msg="Incoming request" request.method=GET request.path=/v1/item-type
+date="2024/05/09 00:07:14" level=DEBUG msg="Request time" took=2.268023ms
+date="2024/05/09 00:08:13" level=INFO msg="Server stopped gracefully"

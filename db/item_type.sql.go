@@ -9,6 +9,15 @@ import (
 	"context"
 )
 
+const createItemType = `-- name: CreateItemType :exec
+insert into item_type ("name") values ($1)
+`
+
+func (q *Queries) CreateItemType(ctx context.Context, name string) error {
+	_, err := q.db.ExecContext(ctx, createItemType, name)
+	return err
+}
+
 const listItemTypes = `-- name: ListItemTypes :many
 SELECT id, name, created_at, updated_at, deleted_at FROM item_type
 `

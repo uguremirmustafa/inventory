@@ -104,10 +104,16 @@ func addRoutes(mux *http.ServeMux, q *db.Queries) {
 	mux.Handle("GET /v1/auth/login", chain.Then(handleLoginGoogle()))
 	mux.Handle("GET /v1/auth/callback", chain.Then(handleCallbackGoogle(q)))
 	mux.Handle("GET /v1/me", authChain.Then(handleMe(q)))
-	mux.Handle("GET /v1/item-type", authChain.Then(handleListItemType(q)))
+
+	itemTypeService := NewItemTypeService(q)
+	mux.Handle("GET /v1/item-type", authChain.Then(Make(itemTypeService.HandleListItemType)))
+	mux.Handle("POST /v1/item-type", authChain.Then(Make(itemTypeService.HandleCreateItemType)))
+
 	mux.Handle("GET /v1/manufacturer", authChain.Then(handleListManufacturer(q)))
 	mux.Handle("GET /v1/location", authChain.Then(handleListLocation(q)))
-	mux.Handle("GET /v1/item", authChain.Then(handleListUserItems(q)))
+
+	itemService := NewItemService(q)
+	mux.Handle("GET /v1/item", authChain.Then(Make(itemService.HandleListUserItem)))
 }
 
 func handleHome() http.Handler {
@@ -121,18 +127,79 @@ func handleHome() http.Handler {
 }
 
 func encode(w http.ResponseWriter, status int, v interface{}) error {
-	w.WriteHeader(status)
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(v); err != nil {
 		return fmt.Errorf("encode json: %w", err)
 	}
 	return nil
 }
 
-func decode[T any](r *http.Request) (*T, error) {
-	var v T
+func writeJson(w http.ResponseWriter, status int, v interface{}) error {
+	return encode(w, status, Result{
+		StatusCode: status,
+		Data:       v,
+	})
+}
+
+func decode(r *http.Request, v interface{}) error {
 	if err := json.NewDecoder(r.Body).Decode(&v); err != nil {
-		return &v, fmt.Errorf("decode json: %w", err)
+		return InvalidJSON()
 	}
-	return &v, nil
+	return nil
+}
+
+type Result struct {
+	StatusCode int `json:"statusCode"`
+	Data       any `json:"data"`
+}
+
+type APIError struct {
+	StatusCode int `json:"statusCode"`
+	Msg        any `json:"msg"`
+}
+
+func (e APIError) Error() string {
+	return fmt.Sprintf("api error: %d", e.StatusCode)
+}
+
+func NewAPIError(statusCode int, err error) APIError {
+	return APIError{
+		StatusCode: statusCode,
+		Msg:        err.Error(),
+	}
+}
+
+func InvalidRequestData(errors map[string]string) APIError {
+	return APIError{
+		StatusCode: http.StatusUnprocessableEntity,
+		Msg:        errors,
+	}
+}
+
+func NotFound() APIError {
+	return NewAPIError(http.StatusNotFound, fmt.Errorf("no items found"))
+}
+
+func InvalidJSON() APIError {
+	return NewAPIError(http.StatusBadRequest, fmt.Errorf("invalid JSON in request body"))
+}
+
+type APIFunc func(w http.ResponseWriter, r *http.Request) error
+
+func Make(h APIFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := h(w, r); err != nil {
+			if apiErr, ok := err.(APIError); ok {
+				encode(w, apiErr.StatusCode, apiErr)
+			} else {
+				errResp := map[string]any{
+					"statusCode": http.StatusInternalServerError,
+					"msg":        "internal server error",
+				}
+				encode(w, http.StatusInternalServerError, errResp)
+			}
+			slog.Error("HTTP API Error", slog.String("err", err.Error()), slog.String("path", r.URL.Path))
+		}
+	}
 }

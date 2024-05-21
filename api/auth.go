@@ -104,8 +104,8 @@ func handleCallbackGoogle(q *db.Queries) http.Handler {
 			Value:    jwtToken,
 			HttpOnly: true,
 			Expires:  time.Now().UTC().Add(24 * time.Hour),
-			Path:     "/",
 		})
+		slog.Info("created jwtToken", slog.String("token", jwtToken))
 
 		http.Redirect(w, r, "/v1/me", http.StatusTemporaryRedirect)
 	})

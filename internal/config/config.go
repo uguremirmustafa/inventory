@@ -26,6 +26,7 @@ type Config struct {
 	GoogleOauthStateString string   `json:"googleOauthStateString"`
 	Database               Database `json:"Database"`
 	PORT                   int      `json:"PORT"`
+	ClientProfilePage      string   `json:"clientProfilePage"`
 }
 
 var (

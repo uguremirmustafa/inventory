@@ -1,6 +1,8 @@
 package api
 
 import (
+	"database/sql"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -9,12 +11,14 @@ import (
 )
 
 type ItemService struct {
-	q *db.Queries
+	q  *db.Queries
+	db *sql.DB
 }
 
-func NewItemService(q *db.Queries) *ItemService {
+func NewItemService(q *db.Queries, db *sql.DB) *ItemService {
 	return &ItemService{
-		q: q,
+		q:  q,
+		db: db,
 	}
 }
 
@@ -29,6 +33,47 @@ func (s *ItemService) HandleListUserItem(w http.ResponseWriter, r *http.Request)
 		list = append(list, *getUserItemJson(item))
 	}
 	encode(w, http.StatusOK, list)
+	return nil
+}
+
+func (s *ItemService) HandleInsertUserItem(w http.ResponseWriter, r *http.Request) error {
+	userID := getUserID(w, r)
+	tx, err := s.db.BeginTx(r.Context(), &sql.TxOptions{})
+	if err != nil {
+		return err
+	}
+
+	// Insert a new user item within the transaction
+	itemParams := db.InsertUserItemParams{
+		Name:           "messi",
+		Description:    sql.NullString{String: "test", Valid: true},
+		UserID:         userID,
+		ItemTypeID:     1,
+		ManufacturerID: sql.NullInt64{Int64: 1, Valid: true},
+	}
+	itemID, err := s.q.WithTx(tx).InsertUserItem(r.Context(), itemParams)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	// Insert a new user item info within the transaction
+	itemInfoParams := db.InsertItemInfoParams{
+		ItemID:           itemID,
+		PurchaseDate:     sql.NullTime{Time: time.Now(), Valid: true},
+		PurchaseLocation: sql.NullString{String: "Bilecik", Valid: true},
+		Price:            sql.NullInt64{Int64: 15, Valid: true},
+		LocationID:       sql.NullInt64{Int64: 1, Valid: true},
+	}
+	_, err = s.q.WithTx(tx).InsertItemInfo(r.Context(), itemInfoParams)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	// Commit the transaction
+	if err := tx.Commit(); err != nil {
+		slog.Error("Failed to insert user Item", err)
+	}
+	encode(w, http.StatusOK, "Success")
 	return nil
 }
 

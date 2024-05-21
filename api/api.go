@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/justinas/alice"
+	"github.com/rs/cors"
 	"github.com/uguremirmustafa/inventory/db"
 	"github.com/uguremirmustafa/inventory/internal/config"
 )
@@ -38,7 +39,7 @@ func Run(ctx context.Context) error {
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt)
 	defer cancel()
 
-	srv := NewServer(q)
+	srv := NewServer(q, pgDB)
 	httpServer := &http.Server{
 		Addr:    fmt.Sprintf(":%v", c.PORT),
 		Handler: srv,
@@ -77,9 +78,9 @@ func NewPostgresDB(connStr string) (*sql.DB, error) {
 	return db, nil
 }
 
-func NewServer(q *db.Queries) http.Handler {
+func NewServer(q *db.Queries, db *sql.DB) http.Handler {
 	mux := http.NewServeMux()
-	addRoutes(mux, q)
+	addRoutes(mux, q, db)
 	return mux
 }
 
@@ -95,9 +96,18 @@ func logMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func addRoutes(mux *http.ServeMux, q *db.Queries) {
-	chain := alice.New(logMiddleware)
-	authChain := alice.New(logMiddleware, authMiddleware())
+func addRoutes(mux *http.ServeMux, q *db.Queries, db *sql.DB) {
+	// Configure CORS options
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"}, // Allow all origins, you can specify specific origins instead
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
+		AllowedHeaders:   []string{"*"},
+		AllowCredentials: true,
+		Debug:            true,
+	})
+
+	chain := alice.New(logMiddleware, c.Handler)
+	authChain := alice.New(logMiddleware, c.Handler, authMiddleware())
 
 	mux.Handle("GET /", chain.Then(handleHome()))
 	mux.Handle("POST /v1/users", chain.Then(handleGreet(q)))
@@ -112,8 +122,9 @@ func addRoutes(mux *http.ServeMux, q *db.Queries) {
 	mux.Handle("GET /v1/manufacturer", authChain.Then(handleListManufacturer(q)))
 	mux.Handle("GET /v1/location", authChain.Then(handleListLocation(q)))
 
-	itemService := NewItemService(q)
+	itemService := NewItemService(q, db)
 	mux.Handle("GET /v1/item", authChain.Then(Make(itemService.HandleListUserItem)))
+	mux.Handle("POST /v1/item", authChain.Then(Make(itemService.HandleInsertUserItem)))
 }
 
 func handleHome() http.Handler {

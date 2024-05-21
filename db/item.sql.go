@@ -10,6 +10,88 @@ import (
 	"database/sql"
 )
 
+const insertItemInfo = `-- name: InsertItemInfo :one
+INSERT INTO item_info (
+    item_id,
+    purchase_date,
+    purchase_location,
+    price,
+    expiration_date,
+    last_used,
+    location_id
+) VALUES (
+    $1, -- item_id
+	$2, -- purchase_date
+	$3, -- purchase_location
+	$4, -- price
+	$5, -- expiration_date
+	$6, -- last_used
+	$7  -- location_id
+) RETURNING id
+`
+
+type InsertItemInfoParams struct {
+	ItemID           int64          `db:"item_id" json:"item_id"`
+	PurchaseDate     sql.NullTime   `db:"purchase_date" json:"purchase_date"`
+	PurchaseLocation sql.NullString `db:"purchase_location" json:"purchase_location"`
+	Price            sql.NullInt64  `db:"price" json:"price"`
+	ExpirationDate   sql.NullTime   `db:"expiration_date" json:"expiration_date"`
+	LastUsed         sql.NullTime   `db:"last_used" json:"last_used"`
+	LocationID       sql.NullInt64  `db:"location_id" json:"location_id"`
+}
+
+func (q *Queries) InsertItemInfo(ctx context.Context, arg InsertItemInfoParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, insertItemInfo,
+		arg.ItemID,
+		arg.PurchaseDate,
+		arg.PurchaseLocation,
+		arg.Price,
+		arg.ExpirationDate,
+		arg.LastUsed,
+		arg.LocationID,
+	)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
+const insertUserItem = `-- name: InsertUserItem :one
+INSERT INTO item (
+    name,
+    description,
+    user_id,
+    item_type_id,
+    manufacturer_id
+) VALUES (
+    $1, -- name
+	$2, -- description
+	$3, -- user_id
+	$4, -- item_type_id
+	$5  -- manufacturer_id
+) RETURNING id
+`
+
+type InsertUserItemParams struct {
+	Name           string         `db:"name" json:"name"`
+	Description    sql.NullString `db:"description" json:"description"`
+	UserID         int64          `db:"user_id" json:"user_id"`
+	ItemTypeID     int64          `db:"item_type_id" json:"item_type_id"`
+	ManufacturerID sql.NullInt64  `db:"manufacturer_id" json:"manufacturer_id"`
+}
+
+func (q *Queries) InsertUserItem(ctx context.Context, arg InsertUserItemParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, insertUserItem,
+		arg.Name,
+		arg.Description,
+		arg.UserID,
+		arg.ItemTypeID,
+		arg.ManufacturerID,
+	)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
 const listUserItems = `-- name: ListUserItems :many
 SELECT 
     i.id AS item_id,

@@ -50,6 +50,8 @@ func handleCallbackGoogle(q *db.Queries) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		state := r.FormValue("state")
 
+		fmt.Println("state", state)
+
 		if state != c.GoogleOauthStateString {
 			slog.Error("Invalid oauth state")
 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
@@ -103,11 +105,16 @@ func handleCallbackGoogle(q *db.Queries) http.Handler {
 			Name:     c.JwtCookieKey,
 			Value:    jwtToken,
 			HttpOnly: true,
+			Domain:   "localhost",
 			Expires:  time.Now().UTC().Add(24 * time.Hour),
+			Path:     "/",
+			SameSite: http.SameSiteLaxMode,
+			Secure:   false,
 		})
 		slog.Info("created jwtToken", slog.String("token", jwtToken))
 
-		http.Redirect(w, r, "/v1/me", http.StatusTemporaryRedirect)
+		http.Redirect(w, r, c.ClientProfilePage, http.StatusFound)
+		// encode(w, http.StatusOK, jwtToken)
 	})
 }
 

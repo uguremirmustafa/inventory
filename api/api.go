@@ -97,13 +97,11 @@ func logMiddleware(next http.Handler) http.Handler {
 }
 
 func addRoutes(mux *http.ServeMux, q *db.Queries, db *sql.DB) {
-	// Configure CORS options
 	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"*"}, // Allow all origins, you can specify specific origins instead
+		AllowedOrigins:   []string{"http://localhost:5173"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
 		AllowedHeaders:   []string{"*"},
 		AllowCredentials: true,
-		Debug:            true,
 	})
 
 	chain := alice.New(logMiddleware, c.Handler)

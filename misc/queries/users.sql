@@ -29,3 +29,13 @@ DELETE FROM
     users
 WHERE
     id = $1;
+
+
+-- name: UpsertUser :one
+INSERT INTO users (name, email, avatar) 
+VALUES ($1, $2, $3)
+ON CONFLICT (email) 
+DO UPDATE SET 
+    name = EXCLUDED.name,
+    avatar = EXCLUDED.avatar
+RETURNING *;

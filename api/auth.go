@@ -3,8 +3,6 @@ package api
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"log/slog"
@@ -15,17 +13,25 @@ import (
 	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/uguremirmustafa/inventory/db"
 	"github.com/uguremirmustafa/inventory/internal/config"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
+	"github.com/uguremirmustafa/inventory/utils"
 )
 
-type UserInfoResponse struct {
-	Sub        string `json:"sub"`
-	Name       string `json:"name"`
-	GivenName  string `json:"given_name"`
-	FamilyName string `json:"family_name"`
-	Email      string `json:"email"`
-	Picture    string `json:"picture"`
+type AuthService struct {
+	q  *db.Queries
+	db *sql.DB
+}
+
+func NewAuthService(q *db.Queries, db *sql.DB) *AuthService {
+	return &AuthService{
+		q:  q,
+		db: db,
+	}
+}
+
+type UserInfo struct {
+	Email  string `json:"email"`
+	Name   string `json:"name"`
+	Avatar string `json:"avatar"`
 }
 
 type CtxUserID string
@@ -34,88 +40,33 @@ const (
 	ctxUserID CtxUserID = "userID"
 )
 
-func handleLoginGoogle() http.Handler {
+func (s *AuthService) HandleLogin(w http.ResponseWriter, r *http.Request) error {
 	c := config.GetConfig()
-	googleOauthConfig := getGoogleAuthConfig(c)
+	req := &UserInfo{}
+	err := decode(r, req)
+	if err != nil {
+		return err
+	}
 
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		url := googleOauthConfig.AuthCodeURL(c.GoogleOauthStateString)
-		http.Redirect(w, r, url, http.StatusTemporaryRedirect)
-	})
-}
-func handleCallbackGoogle(q *db.Queries) http.Handler {
-	c := config.GetConfig()
-	googleOauthConfig := getGoogleAuthConfig(c)
+	userParams := db.UpsertUserParams{
+		Name:   req.Name,
+		Email:  req.Email,
+		Avatar: sql.NullString{String: req.Avatar, Valid: true},
+	}
 
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		state := r.FormValue("state")
+	user, err := s.q.UpsertUser(r.Context(), userParams)
+	if err != nil {
+		return err
+	}
 
-		fmt.Println("state", state)
+	// Create jwt token
+	jwtToken, err := createJWTToken(int(user.ID), user.Email, []byte(c.JwtSecret))
+	if err != nil {
+		return err
+	}
+	setAuthCookie(w, jwtToken, user)
 
-		if state != c.GoogleOauthStateString {
-			slog.Error("Invalid oauth state")
-			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-			return
-		}
-
-		code := r.FormValue("code")
-
-		token, err := googleOauthConfig.Exchange(context.Background(), code)
-		if err != nil {
-			slog.Error("Error exchanging code", slog.String("error", err.Error()), slog.String("code", code))
-			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-			return
-		}
-
-		// Use the access token to fetch user info
-		userInfo, err := getUserInfo(token)
-		if err != nil {
-			slog.Error("Error getting user info", slog.String("error", err.Error()))
-			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-			return
-		}
-
-		// Check if the user exists in the database
-		user, err := q.GetUserByEmail(context.Background(), userInfo.Email)
-		if err != nil {
-			slog.Error("user not found, trying to insert")
-			var u = db.CreateUserParams{
-				Name:   userInfo.Name,
-				Email:  userInfo.Email,
-				Avatar: sql.NullString{String: userInfo.Picture, Valid: true},
-			}
-			user, err = q.CreateUser(context.Background(), u)
-			if err != nil {
-				slog.Error("Failed to create user")
-				http.Error(w, "Failed to create user", http.StatusInternalServerError)
-				return
-			}
-		}
-
-		// Create jwt token
-		jwtToken, err := createJWTToken(int(user.ID), user.Email, []byte(c.JwtSecret))
-		if err != nil {
-			slog.Error("Failed to create token")
-			http.Error(w, "Failed to create token", http.StatusInternalServerError)
-			return
-		}
-
-		// Set JWT token as a cookie
-		http.SetCookie(w, &http.Cookie{
-			Name:     c.JwtCookieKey,
-			Value:    jwtToken,
-			HttpOnly: true,
-			Domain:   "localhost",
-			Expires:  time.Now().UTC().Add(24 * time.Hour),
-			Path:     "/",
-			SameSite: http.SameSiteLaxMode,
-			Secure:   false,
-		})
-		slog.Info("created jwtToken", slog.String("token", jwtToken))
-
-		http.Redirect(w, r, c.ClientProfilePage, http.StatusFound)
-		// encode(w, http.StatusOK, jwtToken)
-	})
+	return writeJson(w, http.StatusOK, getUserJson(user))
 }
 
 func handleMe(q *db.Queries) http.Handler {
@@ -125,12 +76,75 @@ func handleMe(q *db.Queries) http.Handler {
 		user, err := q.GetUser(r.Context(), userID)
 		if err != nil {
 			slog.Error("user not found. Email: %s, ID: %v", user.Email, user.ID)
-			encode(w, http.StatusNotFound, "user not found")
+			writeJson(w, http.StatusNotFound, "user not found")
 			return
 		}
 
-		encode(w, http.StatusOK, getUserJson(user))
+		writeJson(w, http.StatusOK, getUserJson(user))
 	})
+}
+
+func authMiddleware() Middleware {
+	c := config.GetConfig()
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(Make(func(w http.ResponseWriter, r *http.Request) error {
+			// Get JWT token from the cookie
+			cookie, err := r.Cookie(c.JwtCookieKey)
+			if err != nil {
+				slog.Warn("no cookie found on request")
+				return NotAuthorized()
+			}
+
+			// Validate JWT token
+			tokenString := cookie.Value
+			claims := &MyCustomClaims{}
+			err = verifyToken(tokenString, []byte(c.JwtSecret), claims)
+			if err != nil {
+				slog.Warn("token verification failed.", slog.String("token", tokenString))
+				return NotAuthorized()
+			}
+
+			// Check token expiry
+			if time.Unix(claims.ExpiresAt.Unix(), 0).Before(time.Now()) {
+				slog.Warn("token expired.", slog.String("token", tokenString))
+				return NotAuthorized()
+			}
+
+			// JWT token is valid, proceed with the next handler
+			ctx := context.WithValue(r.Context(), ctxUserID, claims.Subject)
+			next.ServeHTTP(w, r.WithContext(ctx))
+			return nil
+		}))
+	}
+}
+
+type User struct {
+	ID     int64   `json:"id"`
+	Email  string  `json:"email"`
+	Name   string  `json:"name"`
+	Avatar *string `json:"avatar"`
+}
+
+func getUserJson(l db.User) *User {
+	return &User{
+		ID:     l.ID,
+		Name:   l.Name,
+		Email:  l.Email,
+		Avatar: utils.GetNilString(&l.Avatar),
+	}
+}
+
+func setAuthCookie(w http.ResponseWriter, token string, user db.User) {
+	c := config.GetConfig()
+	// Set JWT token as a cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     c.JwtCookieKey,
+		Value:    token,
+		HttpOnly: true,
+		Expires:  time.Now().UTC().Add(24 * time.Hour),
+		Path:     "/",
+	})
+	slog.Info("created jwtToken", slog.String("token", token), slog.String("email", user.Email), slog.Int64("userID", user.ID))
 }
 
 func getUserID(w http.ResponseWriter, r *http.Request) int64 {
@@ -139,37 +153,9 @@ func getUserID(w http.ResponseWriter, r *http.Request) int64 {
 	userID, err := strconv.Atoi(value)
 	if err != nil {
 		slog.Error("Cannot convert userID: ", slog.Int("userID", userID))
-		redirectToLogin(w, r)
+		writeJson(w, http.StatusUnauthorized, "unauthorized")
 	}
 	return int64(userID)
-}
-
-// Create HTTP client with the access token
-func getUserInfo(token *oauth2.Token) (*UserInfoResponse, error) {
-	// Create HTTP client with the access token
-	httpClient := oauth2.NewClient(context.Background(), oauth2.StaticTokenSource(token))
-
-	// Make request to Google UserInfo endpoint
-	response, err := httpClient.Get("https://www.googleapis.com/oauth2/v3/userinfo")
-	if err != nil {
-		slog.Error("Failed to call to google for userinfo", slog.String("error", err.Error()))
-		return nil, err
-	}
-	defer response.Body.Close()
-
-	// Check the response status code
-	if response.StatusCode != http.StatusOK {
-		return nil, errors.New("failed to fetch user info")
-	}
-
-	// Decode JSON response into UserInfo struct
-	var userInfo UserInfoResponse
-	err = json.NewDecoder(response.Body).Decode(&userInfo)
-	if err != nil {
-		return nil, err
-	}
-
-	return &userInfo, nil
 }
 
 type MyCustomClaims struct {
@@ -202,74 +188,5 @@ func verifyToken(tokenString string, secret []byte, myClaims *MyCustomClaims) er
 	} else {
 		log.Fatal("unknown claims type, cannot proceed")
 	}
-
 	return nil
-}
-
-func authMiddleware() Middleware {
-	c := config.GetConfig()
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Get JWT token from the cookie
-			cookie, err := r.Cookie(c.JwtCookieKey)
-			if err != nil {
-				slog.Warn("no cookie found on request")
-				redirectToLogin(w, r)
-				return
-			}
-
-			// Validate JWT token
-			tokenString := cookie.Value
-			claims := &MyCustomClaims{}
-			err = verifyToken(tokenString, []byte(c.JwtSecret), claims)
-			if err != nil {
-				slog.Warn("token verification failed.", slog.String("token", tokenString))
-				redirectToLogin(w, r)
-				return
-			}
-
-			// Check token expiry
-			if time.Unix(claims.ExpiresAt.Unix(), 0).Before(time.Now()) {
-				slog.Warn("token expired.", slog.String("token", tokenString))
-				redirectToLogin(w, r)
-				return
-			}
-
-			// JWT token is valid, proceed with the next handler
-			ctx := context.WithValue(r.Context(), ctxUserID, claims.Subject)
-			next.ServeHTTP(w, r.WithContext(ctx))
-		})
-	}
-}
-
-func redirectToLogin(w http.ResponseWriter, r *http.Request) {
-	slog.Info("redirecting to login")
-	http.Redirect(w, r, "/v1/auth/login", http.StatusSeeOther)
-}
-
-type UserResponse struct {
-	Name   string `json:"name"`
-	Email  string `json:"email"`
-	Avatar string `json:"avatar"`
-}
-
-func getUserJson(dbUser db.User) UserResponse {
-	responseData := UserResponse{
-		Name:   dbUser.Name,
-		Email:  dbUser.Email,
-		Avatar: dbUser.Avatar.String,
-	}
-	return responseData
-}
-
-func getGoogleAuthConfig(c *config.Config) *oauth2.Config {
-	googleOauthConfig := &oauth2.Config{
-		ClientID:     c.GoogleClientID,
-		ClientSecret: c.GoogleClientSecret,
-		RedirectURL:  c.GoogleAuthRedirectURL,
-		Scopes:       []string{"openid", "profile", "email"},
-		Endpoint:     google.Endpoint,
-	}
-
-	return googleOauthConfig
 }

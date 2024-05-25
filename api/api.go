@@ -81,7 +81,15 @@ func NewPostgresDB(connStr string) (*sql.DB, error) {
 func NewServer(q *db.Queries, db *sql.DB) http.Handler {
 	mux := http.NewServeMux()
 	addRoutes(mux, q, db)
-	return mux
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:5173", "http://localhost"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
+		AllowedHeaders:   []string{"Origin", "Content-Type", "X-Auth-Token"},
+		AllowCredentials: true,
+		ExposedHeaders:   []string{"Set-Cookie"},
+	})
+
+	return c.Handler(mux)
 }
 
 type Middleware = func(http.Handler) http.Handler
@@ -97,20 +105,15 @@ func logMiddleware(next http.Handler) http.Handler {
 }
 
 func addRoutes(mux *http.ServeMux, q *db.Queries, db *sql.DB) {
-	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5173"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
-		AllowedHeaders:   []string{"*"},
-		AllowCredentials: true,
-	})
+	chain := alice.New(logMiddleware)
+	authChain := alice.New(logMiddleware, authMiddleware())
 
-	chain := alice.New(logMiddleware, c.Handler)
-	authChain := alice.New(logMiddleware, c.Handler, authMiddleware())
+	authService := NewAuthService(q, db)
+	mux.Handle("POST /v1/auth/login", chain.Then(Make(authService.HandleLogin)))
 
-	mux.Handle("GET /", chain.Then(handleHome()))
-	mux.Handle("POST /v1/users", chain.Then(handleGreet(q)))
-	mux.Handle("GET /v1/auth/login", chain.Then(handleLoginGoogle()))
-	mux.Handle("GET /v1/auth/callback", chain.Then(handleCallbackGoogle(q)))
+	// deprecate
+	// mux.Handle("GET /v1/auth/login", chain.Then(handleLoginGoogle()))
+	// mux.Handle("GET /v1/auth/callback", chain.Then(handleCallbackGoogle(q)))
 	mux.Handle("GET /v1/me", authChain.Then(handleMe(q)))
 
 	itemTypeService := NewItemTypeService(q)
@@ -123,16 +126,6 @@ func addRoutes(mux *http.ServeMux, q *db.Queries, db *sql.DB) {
 	itemService := NewItemService(q, db)
 	mux.Handle("GET /v1/item", authChain.Then(Make(itemService.HandleListUserItem)))
 	mux.Handle("POST /v1/item", authChain.Then(Make(itemService.HandleInsertUserItem)))
-}
-
-func handleHome() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, `
-		<div>
-			<a href="/v1/auth/login">Login with Google</a>
-			<a href="/v1/me">see me</a>
-		</div>`)
-	})
 }
 
 func encode(w http.ResponseWriter, status int, v interface{}) error {
@@ -190,6 +183,10 @@ func NotFound() APIError {
 	return NewAPIError(http.StatusNotFound, fmt.Errorf("no items found"))
 }
 
+func NotAuthorized() APIError {
+	return NewAPIError(http.StatusUnauthorized, fmt.Errorf("unauthorized"))
+}
+
 func InvalidJSON() APIError {
 	return NewAPIError(http.StatusBadRequest, fmt.Errorf("invalid JSON in request body"))
 }
@@ -200,13 +197,14 @@ func Make(h APIFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := h(w, r); err != nil {
 			if apiErr, ok := err.(APIError); ok {
-				encode(w, apiErr.StatusCode, apiErr)
+				// encode(w, apiErr.StatusCode, apiErr)
+				writeJson(w, apiErr.StatusCode, apiErr)
 			} else {
 				errResp := map[string]any{
 					"statusCode": http.StatusInternalServerError,
 					"msg":        "internal server error",
 				}
-				encode(w, http.StatusInternalServerError, errResp)
+				writeJson(w, http.StatusInternalServerError, errResp)
 			}
 			slog.Error("HTTP API Error", slog.String("err", err.Error()), slog.String("path", r.URL.Path))
 		}

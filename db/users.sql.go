@@ -14,7 +14,7 @@ const createUser = `-- name: CreateUser :one
 INSERT INTO
     users (name, email, avatar)
 VALUES
-    ($1, $2, $3) RETURNING id, name, email, avatar, token, created_at, updated_at, deleted_at
+    ($1, $2, $3) RETURNING id, name, email, avatar, created_at, updated_at, deleted_at
 `
 
 type CreateUserParams struct {
@@ -31,7 +31,6 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.Name,
 		&i.Email,
 		&i.Avatar,
-		&i.Token,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
@@ -53,7 +52,7 @@ func (q *Queries) DeleteUser(ctx context.Context, id int64) error {
 
 const getUser = `-- name: GetUser :one
 SELECT
-    id, name, email, avatar, token, created_at, updated_at, deleted_at
+    id, name, email, avatar, created_at, updated_at, deleted_at
 FROM
     users
 WHERE
@@ -70,7 +69,6 @@ func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
 		&i.Name,
 		&i.Email,
 		&i.Avatar,
-		&i.Token,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
@@ -80,7 +78,7 @@ func (q *Queries) GetUser(ctx context.Context, id int64) (User, error) {
 
 const getUserByEmail = `-- name: GetUserByEmail :one
 SELECT
-    id, name, email, avatar, token, created_at, updated_at, deleted_at
+    id, name, email, avatar, created_at, updated_at, deleted_at
 FROM
     users
 WHERE
@@ -97,7 +95,37 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.Name,
 		&i.Email,
 		&i.Avatar,
-		&i.Token,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const upsertUser = `-- name: UpsertUser :one
+INSERT INTO users (name, email, avatar) 
+VALUES ($1, $2, $3)
+ON CONFLICT (email) 
+DO UPDATE SET 
+    name = EXCLUDED.name,
+    avatar = EXCLUDED.avatar
+RETURNING id, name, email, avatar, created_at, updated_at, deleted_at
+`
+
+type UpsertUserParams struct {
+	Name   string         `db:"name" json:"name"`
+	Email  string         `db:"email" json:"email"`
+	Avatar sql.NullString `db:"avatar" json:"avatar"`
+}
+
+func (q *Queries) UpsertUser(ctx context.Context, arg UpsertUserParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, upsertUser, arg.Name, arg.Email, arg.Avatar)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.Avatar,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,

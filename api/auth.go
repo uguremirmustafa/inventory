@@ -69,6 +69,23 @@ func (s *AuthService) HandleLogin(w http.ResponseWriter, r *http.Request) error 
 	return writeJson(w, http.StatusOK, getUserJson(user))
 }
 
+func (s *AuthService) HandleLogout(w http.ResponseWriter, r *http.Request) error {
+	c := config.GetConfig()
+
+	userID := getUserID(w, r)
+	http.SetCookie(w, &http.Cookie{
+		Name:     c.JwtCookieKey,
+		Value:    "",
+		Path:     "/",
+		Expires:  time.Unix(0, 0),
+		HttpOnly: true,
+	})
+
+	slog.Info("user logged out", slog.Int64("userID", userID))
+	writeJson(w, http.StatusOK, "logout successfull")
+	return nil
+}
+
 func handleMe(q *db.Queries) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userID := getUserID(w, r)

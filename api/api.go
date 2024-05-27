@@ -110,10 +110,7 @@ func addRoutes(mux *http.ServeMux, q *db.Queries, db *sql.DB) {
 
 	authService := NewAuthService(q, db)
 	mux.Handle("POST /v1/auth/login", chain.Then(Make(authService.HandleLogin)))
-
-	// deprecate
-	// mux.Handle("GET /v1/auth/login", chain.Then(handleLoginGoogle()))
-	// mux.Handle("GET /v1/auth/callback", chain.Then(handleCallbackGoogle(q)))
+	mux.Handle("GET /v1/auth/logout", authChain.Then(Make(authService.HandleLogout)))
 	mux.Handle("GET /v1/me", authChain.Then(handleMe(q)))
 
 	itemTypeService := NewItemTypeService(q)

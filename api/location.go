@@ -15,21 +15,21 @@ type Location struct {
 	Description *string    `json:"description"`
 	CreatedAt   *time.Time `json:"created_at"`
 	UpdatedAt   *time.Time `json:"updated_at"`
-	DeletedAt   *time.Time `json:"deleted_at"`
+	DeletedAt   *time.Time `json:"-"`
 }
 
 func handleListLocation(q *db.Queries) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		locations, err := q.ListLocations(r.Context())
 		if err != nil {
-			encode(w, http.StatusNotFound, "no items found")
+			writeJson(w, http.StatusNotFound, "no items found")
 		}
 
 		var list []Location
 		for _, item := range locations {
 			list = append(list, *getLocationJson(item))
 		}
-		encode(w, http.StatusOK, list)
+		writeJson(w, http.StatusOK, list)
 	})
 }
 

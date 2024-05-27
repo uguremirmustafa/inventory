@@ -15,7 +15,7 @@ type Manufacturer struct {
 	Description *string    `json:"description"`
 	CreatedAt   *time.Time `json:"created_at"`
 	UpdatedAt   *time.Time `json:"updated_at"`
-	DeletedAt   *time.Time `json:"deleted_at"`
+	DeletedAt   *time.Time `json:"-"`
 }
 
 func handleListManufacturer(q *db.Queries) http.Handler {

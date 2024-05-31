@@ -45,7 +45,7 @@ func (s *LocationService) HandleGetLocation(w http.ResponseWriter, r *http.Reque
 
 func (s *LocationService) HandleListUserLocations(w http.ResponseWriter, r *http.Request) error {
 	userID := getUserID(w, r)
-	locations, err := s.q.ListLocationsOfUser(r.Context(), userID)
+	locations, err := s.q.ListLocationsOfGroup(r.Context(), userID)
 	if err != nil {
 		return NotFound()
 	}
@@ -55,6 +55,12 @@ func (s *LocationService) HandleListUserLocations(w http.ResponseWriter, r *http
 		list = append(list, *getLocationJson(item))
 	}
 	return writeJson(w, http.StatusOK, list)
+}
+
+func (s *LocationService) HandleUpsertUserLocation(w http.ResponseWriter, r *http.Request) error {
+	userID := getUserID(w, r)
+
+	return writeJson(w, http.StatusOK, userID)
 }
 
 func getLocationJson(l db.Location) *Location {

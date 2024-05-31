@@ -3,6 +3,7 @@ CREATE TABLE users (
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     avatar TEXT,
+    active_group_id BIGINT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP
@@ -13,6 +14,7 @@ CREATE TABLE IF NOT EXISTS item (
     name VARCHAR(255) NOT NULL,
     description VARCHAR(255),
     user_id BIGINT NOT NULL,
+    group_id BIGINT NOT NULL,
     item_type_id BIGINT NOT NULL,
     manufacturer_id BIGINT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -65,7 +67,7 @@ CREATE TABLE IF NOT EXISTS manufacturer (
     name VARCHAR(255) NOT NULL,
     logo_url TEXT,
     description VARCHAR(255),
-    user_id BIGINT NOT NULL,
+    group_id BIGINT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP
@@ -76,12 +78,52 @@ CREATE TABLE IF NOT EXISTS location (
     name VARCHAR(255) NOT NULL,
     image_url TEXT,
     description VARCHAR(255),
-    user_id BIGINT NOT NULL,
+    group_id BIGINT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP
 );
 
+-- this will allow to share entities with other users (add family members)
+CREATE TABLE IF NOT EXISTS groups (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    group_owner_id BIGINT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_groups (
+    user_id BIGINT NOT NULL,
+    group_id BIGINT NOT NULL,
+    PRIMARY KEY (user_id, group_id)
+);
+
+-- Add foreign key constraint to groups table referencing users table
+ALTER TABLE groups
+ADD CONSTRAINT fk_group_owner
+FOREIGN KEY (group_owner_id)
+REFERENCES users(id);
+
+-- Add foreign key constraint to users table referencing groups table
+ALTER TABLE users
+ADD CONSTRAINT fk_active_group
+FOREIGN KEY (active_group_id)
+REFERENCES groups(id);
+
+-- Add foreign key constraint to user_groups table referencing users table
+ALTER TABLE user_groups 
+ADD CONSTRAINT fk_user
+FOREIGN KEY (user_id)
+REFERENCES users(id);
+
+-- Add foreign key constraint to user_groups table referencing groups table
+ALTER TABLE user_groups 
+ADD CONSTRAINT fk_group
+FOREIGN KEY (group_id)
+REFERENCES groups(id);
 
 -- Add foreign key constraint to item table referencing users table
 ALTER TABLE item
@@ -89,17 +131,23 @@ ADD CONSTRAINT fk_item_user_id
 FOREIGN KEY (user_id)
 REFERENCES users(id);
 
--- Add foreign key constraint to location table referencing users table
-ALTER TABLE location
-ADD CONSTRAINT fk_location_user_id
-FOREIGN KEY (user_id)
-REFERENCES users(id);
+-- Add foreign key constraint to item table referencing group table
+ALTER TABLE item
+ADD CONSTRAINT fk_item_group_id
+FOREIGN KEY (group_id)
+REFERENCES groups(id);
 
--- Add foreign key constraint to manufacturer table referencing users table
+-- Add foreign key constraint to location table referencing group table
+ALTER TABLE location
+ADD CONSTRAINT fk_location_group_id
+FOREIGN KEY (group_id)
+REFERENCES groups(id);
+
+-- Add foreign key constraint to manufacturer table referencing group table
 ALTER TABLE manufacturer
-ADD CONSTRAINT fk_manufacturer_user_id
-FOREIGN KEY (user_id)
-REFERENCES users(id);
+ADD CONSTRAINT fk_manufacturer_group_id
+FOREIGN KEY (group_id)
+REFERENCES groups(id);
 
 -- Add foreign key constraint to item table referencing item_type table
 ALTER TABLE item

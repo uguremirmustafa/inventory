@@ -86,6 +86,7 @@ func NewServer(q *db.Queries, db *sql.DB) http.Handler {
 		AllowedHeaders:   []string{"Origin", "Content-Type", "X-Auth-Token"},
 		AllowCredentials: true,
 		ExposedHeaders:   []string{"Set-Cookie"},
+		Debug:            true,
 	})
 
 	return c.Handler(mux)

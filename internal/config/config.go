@@ -18,15 +18,16 @@ type Database struct {
 
 // Application config
 type Config struct {
-	JwtSecret              string   `json:"jwtSecret"`
-	JwtCookieKey           string   `json:"jwtCookieKey"`
-	GoogleClientID         string   `json:"googleClientID"`
-	GoogleClientSecret     string   `json:"googleClientSecret"`
-	GoogleAuthRedirectURL  string   `json:"googleAuthRedirectURL"`
-	GoogleOauthStateString string   `json:"googleOauthStateString"`
-	Database               Database `json:"Database"`
-	PORT                   int      `json:"PORT"`
-	ClientProfilePage      string   `json:"clientProfilePage"`
+	JwtSecret               string   `json:"jwtSecret"`
+	JwtCookieKey            string   `json:"jwtCookieKey"`
+	GoogleClientID          string   `json:"googleClientID"`
+	GoogleClientSecret      string   `json:"googleClientSecret"`
+	GoogleAuthRedirectURL   string   `json:"googleAuthRedirectURL"`
+	GoogleOauthStateString  string   `json:"googleOauthStateString"`
+	Database                Database `json:"Database"`
+	PORT                    int      `json:"PORT"`
+	ClientProfilePage       string   `json:"clientProfilePage"`
+	ClientAuthErrorCallback string   `json:"clientAuthErrorCallback"`
 }
 
 var (

@@ -1,8 +1,18 @@
+-- Remove foreign key constraint from user_groups table
+ALTER TABLE user_groups DROP CONSTRAINT IF EXISTS fk_user;
+ALTER TABLE user_groups DROP CONSTRAINT IF EXISTS fk_group;
+
+-- Remove foreign key constraint from users table
+ALTER TABLE users DROP CONSTRAINT IF EXISTS fk_active_group;
+
+-- Remove foreign key constraint from groups table
+ALTER TABLE groups DROP CONSTRAINT IF EXISTS fk_group_owner;
+
 -- Remove foreign key constraint from location table
-ALTER TABLE location DROP CONSTRAINT IF EXISTS fk_location_user_id;
+ALTER TABLE location DROP CONSTRAINT IF EXISTS fk_location_group_id;
 
 -- Remove foreign key constraint from manufacturer table
-ALTER TABLE manufacturer DROP CONSTRAINT IF EXISTS fk_manufacturer_user_id;
+ALTER TABLE manufacturer DROP CONSTRAINT IF EXISTS fk_manufacturer_group_id;
 
 -- Remove foreign key constraint from item_info table
 ALTER TABLE item_info DROP CONSTRAINT IF EXISTS fk_item_info_location_id;
@@ -20,6 +30,7 @@ ALTER TABLE item_info DROP CONSTRAINT IF EXISTS fk_item_info_item_id;
 -- Remove foreign key constraint from item table
 ALTER TABLE item DROP CONSTRAINT IF EXISTS fk_item_item_type_id;
 ALTER TABLE item DROP CONSTRAINT IF EXISTS fk_item_user_id;
+ALTER TABLE item DROP CONSTRAINT IF EXISTS fk_item_group_id;
 
 -- Drop tables
 

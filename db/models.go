@@ -8,11 +8,22 @@ import (
 	"database/sql"
 )
 
+type Group struct {
+	ID           int64          `db:"id" json:"id"`
+	Name         string         `db:"name" json:"name"`
+	Description  sql.NullString `db:"description" json:"description"`
+	GroupOwnerID int64          `db:"group_owner_id" json:"group_owner_id"`
+	CreatedAt    sql.NullTime   `db:"created_at" json:"created_at"`
+	UpdatedAt    sql.NullTime   `db:"updated_at" json:"updated_at"`
+	DeletedAt    sql.NullTime   `db:"deleted_at" json:"deleted_at"`
+}
+
 type Item struct {
 	ID             int64          `db:"id" json:"id"`
 	Name           string         `db:"name" json:"name"`
 	Description    sql.NullString `db:"description" json:"description"`
 	UserID         int64          `db:"user_id" json:"user_id"`
+	GroupID        int64          `db:"group_id" json:"group_id"`
 	ItemTypeID     int64          `db:"item_type_id" json:"item_type_id"`
 	ManufacturerID sql.NullInt64  `db:"manufacturer_id" json:"manufacturer_id"`
 	CreatedAt      sql.NullTime   `db:"created_at" json:"created_at"`
@@ -56,7 +67,7 @@ type Location struct {
 	Name        string         `db:"name" json:"name"`
 	ImageUrl    sql.NullString `db:"image_url" json:"image_url"`
 	Description sql.NullString `db:"description" json:"description"`
-	UserID      int64          `db:"user_id" json:"user_id"`
+	GroupID     int64          `db:"group_id" json:"group_id"`
 	CreatedAt   sql.NullTime   `db:"created_at" json:"created_at"`
 	UpdatedAt   sql.NullTime   `db:"updated_at" json:"updated_at"`
 	DeletedAt   sql.NullTime   `db:"deleted_at" json:"deleted_at"`
@@ -67,7 +78,7 @@ type Manufacturer struct {
 	Name        string         `db:"name" json:"name"`
 	LogoUrl     sql.NullString `db:"logo_url" json:"logo_url"`
 	Description sql.NullString `db:"description" json:"description"`
-	UserID      int64          `db:"user_id" json:"user_id"`
+	GroupID     int64          `db:"group_id" json:"group_id"`
 	CreatedAt   sql.NullTime   `db:"created_at" json:"created_at"`
 	UpdatedAt   sql.NullTime   `db:"updated_at" json:"updated_at"`
 	DeletedAt   sql.NullTime   `db:"deleted_at" json:"deleted_at"`
@@ -83,11 +94,17 @@ type RelatedItem struct {
 }
 
 type User struct {
-	ID        int64          `db:"id" json:"id"`
-	Name      string         `db:"name" json:"name"`
-	Email     string         `db:"email" json:"email"`
-	Avatar    sql.NullString `db:"avatar" json:"avatar"`
-	CreatedAt sql.NullTime   `db:"created_at" json:"created_at"`
-	UpdatedAt sql.NullTime   `db:"updated_at" json:"updated_at"`
-	DeletedAt sql.NullTime   `db:"deleted_at" json:"deleted_at"`
+	ID            int64          `db:"id" json:"id"`
+	Name          string         `db:"name" json:"name"`
+	Email         string         `db:"email" json:"email"`
+	Avatar        sql.NullString `db:"avatar" json:"avatar"`
+	ActiveGroupID sql.NullInt64  `db:"active_group_id" json:"active_group_id"`
+	CreatedAt     sql.NullTime   `db:"created_at" json:"created_at"`
+	UpdatedAt     sql.NullTime   `db:"updated_at" json:"updated_at"`
+	DeletedAt     sql.NullTime   `db:"deleted_at" json:"deleted_at"`
+}
+
+type UserGroup struct {
+	UserID  int64 `db:"user_id" json:"user_id"`
+	GroupID int64 `db:"group_id" json:"group_id"`
 }

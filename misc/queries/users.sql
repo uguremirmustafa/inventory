@@ -32,10 +32,17 @@ WHERE
 
 
 -- name: UpsertUser :one
-INSERT INTO users (name, email, avatar) 
-VALUES ($1, $2, $3)
+INSERT INTO users (name, email, avatar, active_group_id) 
+VALUES ($1, $2, $3, $4)
 ON CONFLICT (email) 
 DO UPDATE SET 
     name = EXCLUDED.name,
-    avatar = EXCLUDED.avatar
+    avatar = EXCLUDED.avatar,
+    active_group_id = EXCLUDED.active_group_id
+RETURNING *;
+
+-- name: UpdateUserActiveGroupID :one
+UPDATE users
+SET active_group_id = $2
+WHERE id = $1
 RETURNING *;

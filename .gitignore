@@ -2,3 +2,4 @@ bin
 .env
 log.txt
 config.json
+uploads

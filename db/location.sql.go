@@ -9,12 +9,32 @@ import (
 	"context"
 )
 
-const listLocations = `-- name: ListLocations :many
-SELECT id, name, image_url, description, created_at, updated_at, deleted_at FROM location
+const getLocation = `-- name: GetLocation :one
+SELECT id, name, image_url, description, user_id, created_at, updated_at, deleted_at FROM location WHERE id = $1 LIMIT 1
 `
 
-func (q *Queries) ListLocations(ctx context.Context) ([]Location, error) {
-	rows, err := q.db.QueryContext(ctx, listLocations)
+func (q *Queries) GetLocation(ctx context.Context, id int64) (Location, error) {
+	row := q.db.QueryRowContext(ctx, getLocation, id)
+	var i Location
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.ImageUrl,
+		&i.Description,
+		&i.UserID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const listLocationsOfUser = `-- name: ListLocationsOfUser :many
+SELECT id, name, image_url, description, user_id, created_at, updated_at, deleted_at FROM location WHERE user_id = $1
+`
+
+func (q *Queries) ListLocationsOfUser(ctx context.Context, userID int64) ([]Location, error) {
+	rows, err := q.db.QueryContext(ctx, listLocationsOfUser, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -27,6 +47,7 @@ func (q *Queries) ListLocations(ctx context.Context) ([]Location, error) {
 			&i.Name,
 			&i.ImageUrl,
 			&i.Description,
+			&i.UserID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,

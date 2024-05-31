@@ -12,7 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/justinas/alice"
 	"github.com/rs/cors"
 	"github.com/uguremirmustafa/inventory/db"
 	"github.com/uguremirmustafa/inventory/internal/config"
@@ -102,27 +101,6 @@ func logMiddleware(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 		slog.Debug("Request time", slog.Duration("took", time.Since(start)))
 	})
-}
-
-func addRoutes(mux *http.ServeMux, q *db.Queries, db *sql.DB) {
-	chain := alice.New(logMiddleware)
-	authChain := alice.New(logMiddleware, authMiddleware())
-
-	authService := NewAuthService(q, db)
-	mux.Handle("POST /v1/auth/login", chain.Then(Make(authService.HandleLogin)))
-	mux.Handle("GET /v1/auth/logout", authChain.Then(Make(authService.HandleLogout)))
-	mux.Handle("GET /v1/me", authChain.Then(handleMe(q)))
-
-	itemTypeService := NewItemTypeService(q)
-	mux.Handle("GET /v1/item-type", authChain.Then(Make(itemTypeService.HandleListItemType)))
-	mux.Handle("POST /v1/item-type", authChain.Then(Make(itemTypeService.HandleCreateItemType)))
-
-	mux.Handle("GET /v1/manufacturer", authChain.Then(handleListManufacturer(q)))
-	mux.Handle("GET /v1/location", authChain.Then(handleListLocation(q)))
-
-	itemService := NewItemService(q, db)
-	mux.Handle("GET /v1/item", authChain.Then(Make(itemService.HandleListUserItem)))
-	mux.Handle("POST /v1/item", authChain.Then(Make(itemService.HandleInsertUserItem)))
 }
 
 func encode(w http.ResponseWriter, status int, v interface{}) error {

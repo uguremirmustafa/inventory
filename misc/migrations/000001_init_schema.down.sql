@@ -1,3 +1,9 @@
+-- Remove foreign key constraint from location table
+ALTER TABLE location DROP CONSTRAINT IF EXISTS fk_location_user_id;
+
+-- Remove foreign key constraint from manufacturer table
+ALTER TABLE manufacturer DROP CONSTRAINT IF EXISTS fk_manufacturer_user_id;
+
 -- Remove foreign key constraint from item_info table
 ALTER TABLE item_info DROP CONSTRAINT IF EXISTS fk_item_info_location_id;
 

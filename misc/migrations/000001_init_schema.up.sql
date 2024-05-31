@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS manufacturer (
     name VARCHAR(255) NOT NULL,
     logo_url TEXT,
     description VARCHAR(255),
+    user_id BIGINT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP
@@ -75,6 +76,7 @@ CREATE TABLE IF NOT EXISTS location (
     name VARCHAR(255) NOT NULL,
     image_url TEXT,
     description VARCHAR(255),
+    user_id BIGINT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP
@@ -84,6 +86,18 @@ CREATE TABLE IF NOT EXISTS location (
 -- Add foreign key constraint to item table referencing users table
 ALTER TABLE item
 ADD CONSTRAINT fk_item_user_id
+FOREIGN KEY (user_id)
+REFERENCES users(id);
+
+-- Add foreign key constraint to location table referencing users table
+ALTER TABLE location
+ADD CONSTRAINT fk_location_user_id
+FOREIGN KEY (user_id)
+REFERENCES users(id);
+
+-- Add foreign key constraint to manufacturer table referencing users table
+ALTER TABLE manufacturer
+ADD CONSTRAINT fk_manufacturer_user_id
 FOREIGN KEY (user_id)
 REFERENCES users(id);
 

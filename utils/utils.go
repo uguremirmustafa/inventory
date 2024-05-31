@@ -2,6 +2,10 @@ package utils
 
 import (
 	"database/sql"
+	"fmt"
+	"log/slog"
+	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -33,4 +37,14 @@ func GetNilInt64(i64 *sql.NullInt64) *int64 {
 		i = nil
 	}
 	return i
+}
+
+func GetPathID(r *http.Request) (int64, error) {
+	id := r.PathValue("id")
+	idInt64, err := strconv.Atoi(id)
+	if err != nil {
+		slog.Error("Cannot convert id path value: ", slog.String("id", id))
+		return 0, fmt.Errorf("internal server error")
+	}
+	return int64(idInt64), nil
 }

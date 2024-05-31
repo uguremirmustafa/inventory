@@ -56,6 +56,7 @@ type Location struct {
 	Name        string         `db:"name" json:"name"`
 	ImageUrl    sql.NullString `db:"image_url" json:"image_url"`
 	Description sql.NullString `db:"description" json:"description"`
+	UserID      int64          `db:"user_id" json:"user_id"`
 	CreatedAt   sql.NullTime   `db:"created_at" json:"created_at"`
 	UpdatedAt   sql.NullTime   `db:"updated_at" json:"updated_at"`
 	DeletedAt   sql.NullTime   `db:"deleted_at" json:"deleted_at"`
@@ -66,6 +67,7 @@ type Manufacturer struct {
 	Name        string         `db:"name" json:"name"`
 	LogoUrl     sql.NullString `db:"logo_url" json:"logo_url"`
 	Description sql.NullString `db:"description" json:"description"`
+	UserID      int64          `db:"user_id" json:"user_id"`
 	CreatedAt   sql.NullTime   `db:"created_at" json:"created_at"`
 	UpdatedAt   sql.NullTime   `db:"updated_at" json:"updated_at"`
 	DeletedAt   sql.NullTime   `db:"deleted_at" json:"deleted_at"`

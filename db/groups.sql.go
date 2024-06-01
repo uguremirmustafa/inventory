@@ -55,3 +55,58 @@ func (q *Queries) CreateGroup(ctx context.Context, arg CreateGroupParams) (Group
 	)
 	return i, err
 }
+
+const getGroupsOfUser = `-- name: GetGroupsOfUser :many
+SELECT 
+    g.id as group_id,
+    g.name as group_name,
+    g.description as group_desc,
+    g.group_owner_id,
+    g.created_at,
+    g.updated_at
+FROM 
+    groups g
+JOIN 
+    user_groups ug ON g.id = ug.group_id
+WHERE 
+    ug.user_id = $1 and g.deleted_at is null
+`
+
+type GetGroupsOfUserRow struct {
+	GroupID      int64          `db:"group_id" json:"group_id"`
+	GroupName    string         `db:"group_name" json:"group_name"`
+	GroupDesc    sql.NullString `db:"group_desc" json:"group_desc"`
+	GroupOwnerID int64          `db:"group_owner_id" json:"group_owner_id"`
+	CreatedAt    sql.NullTime   `db:"created_at" json:"created_at"`
+	UpdatedAt    sql.NullTime   `db:"updated_at" json:"updated_at"`
+}
+
+func (q *Queries) GetGroupsOfUser(ctx context.Context, userID int64) ([]GetGroupsOfUserRow, error) {
+	rows, err := q.db.QueryContext(ctx, getGroupsOfUser, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetGroupsOfUserRow
+	for rows.Next() {
+		var i GetGroupsOfUserRow
+		if err := rows.Scan(
+			&i.GroupID,
+			&i.GroupName,
+			&i.GroupDesc,
+			&i.GroupOwnerID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

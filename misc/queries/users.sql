@@ -46,3 +46,5 @@ UPDATE users
 SET active_group_id = $2
 WHERE id = $1
 RETURNING *;
+
+

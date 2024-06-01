@@ -86,7 +86,6 @@ func NewServer(q *db.Queries, db *sql.DB) http.Handler {
 		AllowedHeaders:   []string{"Origin", "Content-Type", "X-Auth-Token"},
 		AllowCredentials: true,
 		ExposedHeaders:   []string{"Set-Cookie"},
-		Debug:            true,
 	})
 
 	return c.Handler(mux)
@@ -157,6 +156,10 @@ func InvalidRequestData(errors map[string]string) APIError {
 
 func NotFound() APIError {
 	return NewAPIError(http.StatusNotFound, fmt.Errorf("no items found"))
+}
+
+func FailedUpsert() APIError {
+	return NewAPIError(http.StatusNotFound, fmt.Errorf("failed upsert"))
 }
 
 func NotAuthorized() APIError {

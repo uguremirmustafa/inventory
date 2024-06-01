@@ -259,6 +259,9 @@ func authMiddleware() Middleware {
 				return NotAuthorized()
 			}
 
+			if claims.ActiveGroupID == 0 {
+				slog.Error("no active group id", slog.Int64("activeGroupID", claims.ActiveGroupID))
+			}
 			// JWT token is valid, proceed with the next handler
 			ctx := context.WithValue(r.Context(), ctxUserID, claims.Subject)
 			ctx = context.WithValue(ctx, ctxUserActiveGroupID, claims.ActiveGroupID)
@@ -312,13 +315,12 @@ func getUserID(w http.ResponseWriter, r *http.Request) int64 {
 
 func getUserActiveGroupID(w http.ResponseWriter, r *http.Request) int64 {
 	ctx := r.Context()
-	value := ctx.Value(ctxUserActiveGroupID).(string)
-	userActiveGroupID, err := strconv.Atoi(value)
-	if err != nil {
-		slog.Error("Cannot convert userActiveGroupID: ", slog.Int("userActiveGroupID", userActiveGroupID))
-		writeJson(w, http.StatusUnauthorized, "no group id")
+	value := ctx.Value(ctxUserActiveGroupID).(int64)
+	if value == 0 {
+		slog.Error("Active group id is 0")
+		writeJson(w, http.StatusUnauthorized, "unauthorized")
 	}
-	return int64(userActiveGroupID)
+	return value
 }
 
 type MyCustomClaims struct {

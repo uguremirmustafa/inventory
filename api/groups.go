@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/uguremirmustafa/inventory/db"
+	"github.com/uguremirmustafa/inventory/internal/config"
 	"github.com/uguremirmustafa/inventory/utils"
 )
 
@@ -47,6 +48,7 @@ func (s *GroupsService) HandleGetGroupsOfUser(w http.ResponseWriter, r *http.Req
 
 // HandleUpdateActiveGroupOfUser updates the current user's activeGroupID(switch family)
 func (s *GroupsService) HandleUpdateActiveGroupOfUser(w http.ResponseWriter, r *http.Request) error {
+	c := config.GetConfig()
 	userID := getUserID(w, r)
 	var reqBody struct {
 		NewGroupID int64 `json:"newGroupID"`
@@ -62,8 +64,17 @@ func (s *GroupsService) HandleUpdateActiveGroupOfUser(w http.ResponseWriter, r *
 	if err != nil {
 		return FailedUpsert()
 	}
+	jwtToken, err := createJWTToken(
+		int(updatedUser.ID),
+		updatedUser.Email,
+		updatedUser.ActiveGroupID.Int64,
+		[]byte(c.JwtSecret))
+	if err != nil {
+		return err
+	}
+	setAuthCookie(w, jwtToken, updatedUser)
 
-	return writeJson(w, http.StatusOK, updatedUser)
+	return writeJson(w, http.StatusOK, getUserJson(updatedUser))
 }
 
 func getUserGroupJson(l db.GetGroupsOfUserRow) *Group {

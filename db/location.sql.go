@@ -7,10 +7,30 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
+const deleteLocation = `-- name: DeleteLocation :one
+UPDATE location
+SET deleted_at = $2
+WHERE id = $1
+RETURNING id
+`
+
+type DeleteLocationParams struct {
+	ID        int64        `db:"id" json:"id"`
+	DeletedAt sql.NullTime `db:"deleted_at" json:"deleted_at"`
+}
+
+func (q *Queries) DeleteLocation(ctx context.Context, arg DeleteLocationParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, deleteLocation, arg.ID, arg.DeletedAt)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
 const getLocation = `-- name: GetLocation :one
-SELECT id, name, image_url, description, group_id, created_at, updated_at, deleted_at FROM location WHERE id = $1 LIMIT 1
+SELECT id, name, image_url, description, group_id, created_at, updated_at, deleted_at FROM location WHERE id = $1 AND deleted_at is null LIMIT 1
 `
 
 func (q *Queries) GetLocation(ctx context.Context, id int64) (Location, error) {
@@ -29,8 +49,33 @@ func (q *Queries) GetLocation(ctx context.Context, id int64) (Location, error) {
 	return i, err
 }
 
+const insertLocation = `-- name: InsertLocation :one
+INSERT INTO location (name, image_url, description, group_id)
+VALUES ($1, $2, $3, $4)
+RETURNING id
+`
+
+type InsertLocationParams struct {
+	Name        string         `db:"name" json:"name"`
+	ImageUrl    sql.NullString `db:"image_url" json:"image_url"`
+	Description sql.NullString `db:"description" json:"description"`
+	GroupID     int64          `db:"group_id" json:"group_id"`
+}
+
+func (q *Queries) InsertLocation(ctx context.Context, arg InsertLocationParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, insertLocation,
+		arg.Name,
+		arg.ImageUrl,
+		arg.Description,
+		arg.GroupID,
+	)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
 const listLocationsOfGroup = `-- name: ListLocationsOfGroup :many
-SELECT id, name, image_url, description, group_id, created_at, updated_at, deleted_at FROM location WHERE group_id = $1
+SELECT id, name, image_url, description, group_id, created_at, updated_at, deleted_at FROM location WHERE group_id = $1 AND deleted_at is null
 `
 
 func (q *Queries) ListLocationsOfGroup(ctx context.Context, groupID int64) ([]Location, error) {
@@ -63,4 +108,35 @@ func (q *Queries) ListLocationsOfGroup(ctx context.Context, groupID int64) ([]Lo
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateLocation = `-- name: UpdateLocation :one
+UPDATE location
+SET name = $2,
+    image_url = $3,
+    description = $4,
+    group_id = $5
+WHERE id = $1
+RETURNING id
+`
+
+type UpdateLocationParams struct {
+	ID          int64          `db:"id" json:"id"`
+	Name        string         `db:"name" json:"name"`
+	ImageUrl    sql.NullString `db:"image_url" json:"image_url"`
+	Description sql.NullString `db:"description" json:"description"`
+	GroupID     int64          `db:"group_id" json:"group_id"`
+}
+
+func (q *Queries) UpdateLocation(ctx context.Context, arg UpdateLocationParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, updateLocation,
+		arg.ID,
+		arg.Name,
+		arg.ImageUrl,
+		arg.Description,
+		arg.GroupID,
+	)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
 }

@@ -162,6 +162,14 @@ func FailedUpsert() APIError {
 	return NewAPIError(http.StatusNotFound, fmt.Errorf("failed upsert"))
 }
 
+func FailedInsert() APIError {
+	return NewAPIError(http.StatusNotFound, fmt.Errorf("failed insert"))
+}
+
+func FailedUpdate() APIError {
+	return NewAPIError(http.StatusNotFound, fmt.Errorf("failed update"))
+}
+
 func NotAuthorized() APIError {
 	return NewAPIError(http.StatusUnauthorized, fmt.Errorf("unauthorized"))
 }

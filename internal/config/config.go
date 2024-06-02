@@ -28,6 +28,7 @@ type Config struct {
 	PORT                    int      `json:"PORT"`
 	ClientProfilePage       string   `json:"clientProfilePage"`
 	ClientAuthErrorCallback string   `json:"clientAuthErrorCallback"`
+	SendGridApiKey          string   `json:"SENDGRID_API_KEY"`
 }
 
 var (

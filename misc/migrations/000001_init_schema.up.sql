@@ -101,6 +101,21 @@ CREATE TABLE IF NOT EXISTS user_groups (
     PRIMARY KEY (user_id, group_id)
 );
 
+CREATE TABLE IF NOT EXISTS invitations (
+  id BIGSERIAL PRIMARY KEY,
+  email VARCHAR(255) NOT NULL,
+  token VARCHAR(255) NOT NULL,
+  invitor_id BIGINT NOT NULL,
+  group_id BIGINT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Add foreign key constraint to invitations table referencing groups table
+ALTER TABLE invitations
+ADD CONSTRAINT fk_group_id
+FOREIGN KEY (group_id)
+REFERENCES groups(id);
+
 -- Add foreign key constraint to groups table referencing users table
 ALTER TABLE groups
 ADD CONSTRAINT fk_group_owner

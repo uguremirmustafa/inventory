@@ -27,3 +27,16 @@ JOIN
 WHERE 
     ug.user_id = $1 and g.deleted_at is null;
 
+-- name: GetMembersOfGroup :many
+SELECT
+	u.id,
+	u."name",
+	u.email,
+	u.avatar,
+	g.id as group_id,
+	g.name as group_name
+FROM
+	user_groups ug
+	join users u on ug.user_id = u.id
+	join groups g on ug.group_id = g.id
+WHERE ug.group_id = $1;

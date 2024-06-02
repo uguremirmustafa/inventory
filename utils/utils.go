@@ -1,7 +1,9 @@
 package utils
 
 import (
+	"crypto/rand"
 	"database/sql"
+	"encoding/base64"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -47,4 +49,17 @@ func GetPathID(r *http.Request) (int64, error) {
 		return 0, fmt.Errorf("internal server error")
 	}
 	return int64(idInt64), nil
+}
+
+func GenerateToken() (string, error) {
+	// Generate 32 bytes of random data
+	token := make([]byte, 32)
+	_, err := rand.Read(token)
+	if err != nil {
+		return "", err
+	}
+
+	// Encode the bytes to a URL-safe string
+	tokenString := base64.URLEncoding.EncodeToString(token)
+	return tokenString, nil
 }

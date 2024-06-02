@@ -77,6 +77,28 @@ func (s *GroupsService) HandleUpdateActiveGroupOfUser(w http.ResponseWriter, r *
 	return writeJson(w, http.StatusOK, getUserJson(updatedUser))
 }
 
+type GroupMemberItem struct {
+	ID        int64   `json:"id"`
+	Name      string  `json:"name"`
+	Email     string  `json:"email"`
+	Avatar    *string `json:"avatar"`
+	GroupID   int64   `json:"group_id"`
+	GroupName string  `json:"group_name"`
+}
+
+func (s *GroupsService) HandleGetGroupMembers(w http.ResponseWriter, r *http.Request) error {
+	groupID := getUserActiveGroupID(w, r)
+	groupMemberItems, err := s.q.GetMembersOfGroup(r.Context(), groupID)
+	if err != nil {
+		return NotFound()
+	}
+	var list []GroupMemberItem
+	for _, item := range groupMemberItems {
+		list = append(list, *getMemberOfGroupJson(item))
+	}
+	return writeJson(w, http.StatusOK, list)
+}
+
 func getUserGroupJson(l db.GetGroupsOfUserRow) *Group {
 	return &Group{
 		ID:          l.GroupID,
@@ -84,5 +106,16 @@ func getUserGroupJson(l db.GetGroupsOfUserRow) *Group {
 		Description: utils.GetNilString(&l.GroupDesc),
 		CreatedAt:   utils.GetNilTime(&l.CreatedAt),
 		UpdatedAt:   utils.GetNilTime(&l.UpdatedAt),
+	}
+}
+
+func getMemberOfGroupJson(l db.GetMembersOfGroupRow) *GroupMemberItem {
+	return &GroupMemberItem{
+		ID:        l.ID,
+		Name:      l.Name,
+		Avatar:    utils.GetNilString(&l.Avatar),
+		GroupID:   l.GroupID,
+		GroupName: l.GroupName,
+		Email:     l.Email,
 	}
 }

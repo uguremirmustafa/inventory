@@ -27,6 +27,7 @@ func addRoutes(mux *http.ServeMux, q *db.Queries, db *sql.DB) {
 	groupService := NewGroupsService(q, db)
 	mux.Handle("GET /v1/groups", authChain.Then(Make(groupService.HandleGetGroupsOfUser)))
 	mux.Handle("PUT /v1/user-group", authChain.Then(Make(groupService.HandleUpdateActiveGroupOfUser)))
+	mux.Handle("GET /v1/group-members", authChain.Then(Make(groupService.HandleGetGroupMembers)))
 
 	itemTypeService := NewItemTypeService(q)
 	mux.Handle("GET /v1/item-type", authChain.Then(Make(itemTypeService.HandleListItemType)))
@@ -47,4 +48,8 @@ func addRoutes(mux *http.ServeMux, q *db.Queries, db *sql.DB) {
 
 	uploadService := NewUploadService(q, db)
 	mux.Handle("POST /v1/upload-images", authChain.Then(Make(uploadService.HandleUploadImages)))
+
+	invitationService := NewInvitationService(q, db)
+	mux.Handle("POST /v1/invite-user", authChain.Then(Make(invitationService.HandleCreateInvitation)))
+
 }

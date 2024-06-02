@@ -34,6 +34,15 @@ ALTER TABLE item DROP CONSTRAINT IF EXISTS fk_item_group_id;
 
 -- Drop tables
 
+-- Drop invitations table
+DROP TABLE IF EXISTS invitations;
+
+-- Drop groups table
+DROP TABLE IF EXISTS groups;
+
+-- Drop user_groups table
+DROP TABLE IF EXISTS user_groups;
+
 -- Drop manufacturer table
 DROP TABLE IF EXISTS manufacturer;
 

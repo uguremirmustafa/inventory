@@ -110,3 +110,57 @@ func (q *Queries) GetGroupsOfUser(ctx context.Context, userID int64) ([]GetGroup
 	}
 	return items, nil
 }
+
+const getMembersOfGroup = `-- name: GetMembersOfGroup :many
+SELECT
+	u.id,
+	u."name",
+	u.email,
+	u.avatar,
+	g.id as group_id,
+	g.name as group_name
+FROM
+	user_groups ug
+	join users u on ug.user_id = u.id
+	join groups g on ug.group_id = g.id
+WHERE ug.group_id = $1
+`
+
+type GetMembersOfGroupRow struct {
+	ID        int64          `db:"id" json:"id"`
+	Name      string         `db:"name" json:"name"`
+	Email     string         `db:"email" json:"email"`
+	Avatar    sql.NullString `db:"avatar" json:"avatar"`
+	GroupID   int64          `db:"group_id" json:"group_id"`
+	GroupName string         `db:"group_name" json:"group_name"`
+}
+
+func (q *Queries) GetMembersOfGroup(ctx context.Context, groupID int64) ([]GetMembersOfGroupRow, error) {
+	rows, err := q.db.QueryContext(ctx, getMembersOfGroup, groupID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetMembersOfGroupRow
+	for rows.Next() {
+		var i GetMembersOfGroupRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Email,
+			&i.Avatar,
+			&i.GroupID,
+			&i.GroupName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

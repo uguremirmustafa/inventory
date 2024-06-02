@@ -46,89 +46,111 @@ const (
 	ctxUserActiveGroupID CtxUserActiveGroupID = "activeGroupID"
 )
 
-func (s *AuthService) upsertUserWithGroup(u *UserInfoResponse, ctx context.Context) (*db.User, error) {
+func (s *AuthService) createUserWithGroup(ctx context.Context, u *UserInfoResponse, invitationCode *string) (*db.User, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback()
-	// transactional queries
 	qtx := s.q.WithTx(tx)
-	var groupID int64
-	user, err := qtx.GetUserByEmail(ctx, u.Email)
-	if err != nil {
-		userParams := db.UpsertUserParams{
-			Name:          u.Name,
-			Email:         u.Email,
-			Avatar:        sql.NullString{String: u.Picture, Valid: true},
-			ActiveGroupID: sql.NullInt64{Valid: false},
-		}
-		user, err = qtx.UpsertUser(ctx, userParams)
-		if err != nil {
-			return nil, err
-		}
+
+	// user not found, creating one, without active group ID
+	userParams := db.CreateUserParams{
+		Name:   u.Name,
+		Email:  u.Email,
+		Avatar: sql.NullString{String: u.Picture, Valid: true},
 	}
-	groupID = user.ActiveGroupID.Int64
+	user, err := qtx.CreateUser(ctx, userParams)
+	if err != nil {
+		return nil, err
+	}
 
-	if !user.ActiveGroupID.Valid || user.ActiveGroupID.Int64 <= 0 {
-		slog.Debug(
-			"activeGroupID is not valid or 0(zero)",
-			slog.Int64("activeGroupID", user.ActiveGroupID.Int64),
-		)
-		// create group
-		groupParams := db.CreateGroupParams{
-			Name:         fmt.Sprintf("%s's Family", u.Name),
-			GroupOwnerID: user.ID,
-		}
-		dbGroup, err := qtx.CreateGroup(ctx, groupParams)
+	// if there is invitation code, connect user to invitor's family/group
+	if invitationCode != nil {
+		invitation, err := qtx.GetInvitationByToken(ctx, *invitationCode)
 		if err != nil {
-			slog.Error(
-				"error while creating the user's default group",
-				slog.Int64("userID", user.ID),
-			)
 			return nil, err
 		}
-
 		// connect user and group using user_groups table
 		userGroupParams := db.ConnectUserAndGroupParams{
 			UserID:  user.ID,
-			GroupID: dbGroup.ID,
+			GroupID: invitation.GroupID,
 		}
 		err = qtx.ConnectUserAndGroup(ctx, userGroupParams)
 		if err != nil {
 			slog.Error(
 				"error while connecting user to its group",
 				slog.Int64("userID", user.ID),
-				slog.Int64("groupID", dbGroup.ID),
+				slog.Int64("groupID", invitation.GroupID),
 			)
 			return nil, err
 		}
+		// update user's active groupID
 		user, err = qtx.UpdateUserActiveGroupID(ctx, db.UpdateUserActiveGroupIDParams{
 			ID:            user.ID,
-			ActiveGroupID: sql.NullInt64{Valid: true, Int64: dbGroup.ID},
+			ActiveGroupID: sql.NullInt64{Valid: true, Int64: invitation.GroupID},
 		})
 		if err != nil {
 			slog.Error(
 				"sth went wrong updating user's ActiveGroupID",
 				slog.Int64("userID", user.ID),
-				slog.Int64("groupID", dbGroup.ID),
+				slog.Int64("groupID", invitation.GroupID),
 			)
+			return nil, err
 		}
-		groupID = user.ActiveGroupID.Int64
+		err = tx.Commit()
+		if err != nil {
+			slog.Error("transaction error")
+			return nil, err
+		}
+		return &user, nil
 	}
 
+	// if there is no invitation code, create group for user and connect to it
+	groupParams := db.CreateGroupParams{
+		Name:         fmt.Sprintf("%s's Family", u.Name),
+		GroupOwnerID: user.ID,
+	}
+	dbGroup, err := qtx.CreateGroup(ctx, groupParams)
+	if err != nil {
+		slog.Error(
+			"error while creating the user's default group",
+			slog.Int64("userID", user.ID),
+		)
+		return nil, err
+	}
+	// connect user and group using user_groups table
+	userGroupParams := db.ConnectUserAndGroupParams{
+		UserID:  user.ID,
+		GroupID: dbGroup.ID,
+	}
+	err = qtx.ConnectUserAndGroup(ctx, userGroupParams)
+	if err != nil {
+		slog.Error(
+			"error while connecting user to its group",
+			slog.Int64("userID", user.ID),
+			slog.Int64("groupID", dbGroup.ID),
+		)
+		return nil, err
+	}
+	user, err = qtx.UpdateUserActiveGroupID(ctx, db.UpdateUserActiveGroupIDParams{
+		ID:            user.ID,
+		ActiveGroupID: sql.NullInt64{Valid: true, Int64: dbGroup.ID},
+	})
+	if err != nil {
+		slog.Error(
+			"sth went wrong updating user's ActiveGroupID",
+			slog.Int64("userID", user.ID),
+			slog.Int64("groupID", dbGroup.ID),
+		)
+		return nil, err
+	}
 	err = tx.Commit()
 	if err != nil {
 		slog.Error("transaction error")
 		return nil, err
 	}
-	return &db.User{
-		ID:            user.ID,
-		Name:          user.Name,
-		Email:         user.Email,
-		Avatar:        user.Avatar,
-		ActiveGroupID: sql.NullInt64{Valid: true, Int64: groupID},
-	}, nil
+	return &user, nil
 }
 
 func getoauthConfGoogle() *oauth2.Config {
@@ -144,9 +166,10 @@ func getoauthConfGoogle() *oauth2.Config {
 }
 
 func (s *AuthService) HandleLoginWithGoogle(w http.ResponseWriter, r *http.Request) error {
-	c := config.GetConfig()
+	invitationCode := r.URL.Query().Get("invitationCode")
+	slog.Debug("invitationCode", slog.String("invitationCode", invitationCode))
 	oauthConfGoogle := getoauthConfGoogle()
-	url := oauthConfGoogle.AuthCodeURL(c.GoogleOauthStateString)
+	url := oauthConfGoogle.AuthCodeURL(invitationCode)
 	return writeJson(w, http.StatusOK, url)
 }
 
@@ -154,12 +177,7 @@ func (s *AuthService) HandleGoogleCallback(w http.ResponseWriter, r *http.Reques
 	c := config.GetConfig()
 	errorUrl := c.ClientAuthErrorCallback
 	oauthConfGoogle := getoauthConfGoogle()
-	state := r.FormValue("state")
-	if state != c.GoogleOauthStateString {
-		slog.Error("state string does not match", slog.String("stateString", state))
-		http.Redirect(w, r, errorUrl, http.StatusTemporaryRedirect)
-		return nil
-	}
+	invitationCode := r.FormValue("state")
 
 	code := r.FormValue("code")
 	token, err := oauthConfGoogle.Exchange(context.Background(), code)
@@ -177,25 +195,36 @@ func (s *AuthService) HandleGoogleCallback(w http.ResponseWriter, r *http.Reques
 		return err
 	}
 
-	dbUser, err := s.upsertUserWithGroup(userInfo, r.Context())
+	// check if user already has account
+	user, err := s.q.GetUserByEmail(r.Context(), userInfo.Email)
 	if err != nil {
-		slog.Error("Error upserting user with group", slog.String("err", err.Error()))
-		http.Redirect(w, r, errorUrl, http.StatusTemporaryRedirect)
-		return err
+		// user does not exist
+		dbUser, err := s.createUserWithGroup(r.Context(), userInfo, &invitationCode)
+		if err != nil {
+			return err
+		}
+		jwtToken, err := createJWTToken(
+			int(dbUser.ID),
+			dbUser.Email,
+			dbUser.ActiveGroupID.Int64,
+			[]byte(c.JwtSecret))
+		if err != nil {
+			return err
+		}
+		setAuthCookie(w, jwtToken, *dbUser)
+		http.Redirect(w, r, c.ClientProfilePage, http.StatusTemporaryRedirect)
+		return nil
 	}
 
-	slog.Debug("upsertUserWithGroup result", slog.Any("dbUser", dbUser))
-
 	jwtToken, err := createJWTToken(
-		int(dbUser.ID),
-		dbUser.Email,
-		dbUser.ActiveGroupID.Int64,
+		int(user.ID),
+		user.Email,
+		user.ActiveGroupID.Int64,
 		[]byte(c.JwtSecret))
 	if err != nil {
 		return err
 	}
-	setAuthCookie(w, jwtToken, *dbUser)
-
+	setAuthCookie(w, jwtToken, user)
 	http.Redirect(w, r, c.ClientProfilePage, http.StatusTemporaryRedirect)
 	return nil
 

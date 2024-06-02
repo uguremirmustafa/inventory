@@ -18,6 +18,15 @@ type Group struct {
 	DeletedAt    sql.NullTime   `db:"deleted_at" json:"deleted_at"`
 }
 
+type Invitation struct {
+	ID        int64        `db:"id" json:"id"`
+	Email     string       `db:"email" json:"email"`
+	Token     string       `db:"token" json:"token"`
+	InvitorID int64        `db:"invitor_id" json:"invitor_id"`
+	GroupID   int64        `db:"group_id" json:"group_id"`
+	CreatedAt sql.NullTime `db:"created_at" json:"created_at"`
+}
+
 type Item struct {
 	ID             int64          `db:"id" json:"id"`
 	Name           string         `db:"name" json:"name"`

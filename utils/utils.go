@@ -63,3 +63,7 @@ func GenerateToken() (string, error) {
 	tokenString := base64.URLEncoding.EncodeToString(token)
 	return tokenString, nil
 }
+
+func IsFalsy(s string) bool {
+	return s == ""
+}

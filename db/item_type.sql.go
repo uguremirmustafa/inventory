@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const createItemType = `-- name: CreateItemType :exec
@@ -19,11 +20,11 @@ func (q *Queries) CreateItemType(ctx context.Context, name string) error {
 }
 
 const listItemTypes = `-- name: ListItemTypes :many
-SELECT id, name, created_at, updated_at, deleted_at FROM item_type
+SELECT id, name, created_at, updated_at, deleted_at, parent_id FROM item_type where deleted_at is null AND parent_id = $1
 `
 
-func (q *Queries) ListItemTypes(ctx context.Context) ([]ItemType, error) {
-	rows, err := q.db.QueryContext(ctx, listItemTypes)
+func (q *Queries) ListItemTypes(ctx context.Context, parentID sql.NullInt64) ([]ItemType, error) {
+	rows, err := q.db.QueryContext(ctx, listItemTypes, parentID)
 	if err != nil {
 		return nil, err
 	}
@@ -37,6 +38,41 @@ func (q *Queries) ListItemTypes(ctx context.Context) ([]ItemType, error) {
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
+			&i.ParentID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listMainItemTypes = `-- name: ListMainItemTypes :many
+SELECT id, name, created_at, updated_at, deleted_at, parent_id FROM item_type where deleted_at is null AND parent_id is null
+`
+
+func (q *Queries) ListMainItemTypes(ctx context.Context) ([]ItemType, error) {
+	rows, err := q.db.QueryContext(ctx, listMainItemTypes)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ItemType
+	for rows.Next() {
+		var i ItemType
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.ParentID,
 		); err != nil {
 			return nil, err
 		}

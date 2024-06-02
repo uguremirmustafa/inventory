@@ -1,6 +1,7 @@
 package api
 
 import (
+	"database/sql"
 	"net/http"
 	"time"
 
@@ -18,16 +19,33 @@ func NewItemTypeService(q *db.Queries) *ItemTypeService {
 	}
 }
 
-func (s *ItemTypeService) HandleListItemType(w http.ResponseWriter, r *http.Request) error {
-	itemTypes, err := s.q.ListItemTypes(r.Context())
-	if err != nil {
-		return NotFound()
+func (s *ItemTypeService) HandleListItemTypes(w http.ResponseWriter, r *http.Request) error {
+	var reqBody struct {
+		ParentID *int64 `json:"parentID"`
 	}
+	err := decode(r, &reqBody)
+	if err != nil {
+		return InvalidJSON()
+	}
+
+	var itemTypes []db.ItemType
+	if reqBody.ParentID != nil {
+		itemTypes, err = s.q.ListItemTypes(r.Context(), sql.NullInt64{Int64: *reqBody.ParentID, Valid: true})
+		if err != nil {
+			return NotFound()
+		}
+	} else {
+		itemTypes, err = s.q.ListMainItemTypes(r.Context())
+		if err != nil {
+			return NotFound()
+		}
+	}
+
 	var itemTypeJsonList []ItemType
 	for _, itemType := range itemTypes {
 		itemTypeJsonList = append(itemTypeJsonList, *getItemTypeJson(itemType))
 	}
-	encode(w, http.StatusOK, itemTypeJsonList)
+	writeJson(w, http.StatusOK, itemTypeJsonList)
 	return nil
 }
 
@@ -53,6 +71,7 @@ func (s *ItemTypeService) HandleCreateItemType(w http.ResponseWriter, r *http.Re
 type ItemType struct {
 	ID        int64      `json:"id"`
 	Name      string     `json:"name"`
+	ParentID  *int64     `json:"parent_id"`
 	CreatedAt *time.Time `json:"created_at"`
 	UpdatedAt *time.Time `json:"updated_at"`
 	DeletedAt *time.Time `json:"-"`
@@ -62,6 +81,7 @@ func getItemTypeJson(it db.ItemType) *ItemType {
 	return &ItemType{
 		ID:        it.ID,
 		Name:      it.Name,
+		ParentID:  utils.GetNilInt64(&it.ParentID),
 		CreatedAt: utils.GetNilTime(&it.CreatedAt),
 		UpdatedAt: utils.GetNilTime(&it.UpdatedAt),
 		DeletedAt: utils.GetNilTime(&it.DeletedAt),

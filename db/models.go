@@ -64,11 +64,12 @@ type ItemInfo struct {
 }
 
 type ItemType struct {
-	ID        int64        `db:"id" json:"id"`
-	Name      string       `db:"name" json:"name"`
-	CreatedAt sql.NullTime `db:"created_at" json:"created_at"`
-	UpdatedAt sql.NullTime `db:"updated_at" json:"updated_at"`
-	DeletedAt sql.NullTime `db:"deleted_at" json:"deleted_at"`
+	ID        int64         `db:"id" json:"id"`
+	Name      string        `db:"name" json:"name"`
+	CreatedAt sql.NullTime  `db:"created_at" json:"created_at"`
+	UpdatedAt sql.NullTime  `db:"updated_at" json:"updated_at"`
+	DeletedAt sql.NullTime  `db:"deleted_at" json:"deleted_at"`
+	ParentID  sql.NullInt64 `db:"parent_id" json:"parent_id"`
 }
 
 type Location struct {

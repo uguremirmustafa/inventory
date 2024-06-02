@@ -66,9 +66,11 @@ func (s *AuthService) createUserWithGroup(ctx context.Context, u *UserInfoRespon
 	}
 
 	// if there is invitation code, connect user to invitor's family/group
-	if invitationCode != nil {
+	if !utils.IsFalsy(*invitationCode) {
+		slog.Debug("invitation code is available, searching invitation in db")
 		invitation, err := qtx.GetInvitationByToken(ctx, *invitationCode)
 		if err != nil {
+			slog.Error("invitation item not found", slog.String("invitationCode", *invitationCode))
 			return nil, err
 		}
 		// connect user and group using user_groups table

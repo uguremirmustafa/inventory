@@ -61,13 +61,15 @@ INSERT INTO item (
     description,
     user_id,
     item_type_id,
-    manufacturer_id
+    manufacturer_id,
+	group_id
 ) VALUES (
     $1, -- name
 	$2, -- description
 	$3, -- user_id
 	$4, -- item_type_id
-	$5  -- manufacturer_id
+	$5,  -- manufacturer_id
+	$6
 ) RETURNING id
 `
 
@@ -77,6 +79,7 @@ type InsertUserItemParams struct {
 	UserID         int64          `db:"user_id" json:"user_id"`
 	ItemTypeID     int64          `db:"item_type_id" json:"item_type_id"`
 	ManufacturerID sql.NullInt64  `db:"manufacturer_id" json:"manufacturer_id"`
+	GroupID        int64          `db:"group_id" json:"group_id"`
 }
 
 func (q *Queries) InsertUserItem(ctx context.Context, arg InsertUserItemParams) (int64, error) {
@@ -86,10 +89,111 @@ func (q *Queries) InsertUserItem(ctx context.Context, arg InsertUserItemParams) 
 		arg.UserID,
 		arg.ItemTypeID,
 		arg.ManufacturerID,
+		arg.GroupID,
 	)
 	var id int64
 	err := row.Scan(&id)
 	return id, err
+}
+
+const listItemImages = `-- name: ListItemImages :many
+SELECT 
+    ii.item_id,
+    ii.image_url
+FROM 
+    item_image ii
+WHERE 
+    ii.item_id = $1
+    AND ii.deleted_at IS NULL
+ORDER BY 
+    ii.created_at DESC
+LIMIT $2
+`
+
+type ListItemImagesParams struct {
+	ItemID int64 `db:"item_id" json:"item_id"`
+	Limit  int32 `db:"limit" json:"limit"`
+}
+
+type ListItemImagesRow struct {
+	ItemID   int64  `db:"item_id" json:"item_id"`
+	ImageUrl string `db:"image_url" json:"image_url"`
+}
+
+func (q *Queries) ListItemImages(ctx context.Context, arg ListItemImagesParams) ([]ListItemImagesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listItemImages, arg.ItemID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListItemImagesRow
+	for rows.Next() {
+		var i ListItemImagesRow
+		if err := rows.Scan(&i.ItemID, &i.ImageUrl); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listItems = `-- name: ListItems :many
+SELECT 
+    i.id AS item_id,
+    i.name AS item_name,
+    i.description AS item_description,
+    i.created_at AS created_at,
+    i.updated_at AS updated_at
+FROM 
+    item i
+WHERE 
+    i.deleted_at IS NULL 
+    AND i.group_id = $1
+ORDER BY 
+    i.updated_at DESC
+`
+
+type ListItemsRow struct {
+	ItemID          int64          `db:"item_id" json:"item_id"`
+	ItemName        string         `db:"item_name" json:"item_name"`
+	ItemDescription sql.NullString `db:"item_description" json:"item_description"`
+	CreatedAt       sql.NullTime   `db:"created_at" json:"created_at"`
+	UpdatedAt       sql.NullTime   `db:"updated_at" json:"updated_at"`
+}
+
+func (q *Queries) ListItems(ctx context.Context, groupID int64) ([]ListItemsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listItems, groupID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListItemsRow
+	for rows.Next() {
+		var i ListItemsRow
+		if err := rows.Scan(
+			&i.ItemID,
+			&i.ItemName,
+			&i.ItemDescription,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listUserItems = `-- name: ListUserItems :many

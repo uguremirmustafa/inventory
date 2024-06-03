@@ -10,7 +10,7 @@ import (
 )
 
 const listManufacturers = `-- name: ListManufacturers :many
-SELECT id, name, logo_url, description, group_id, created_at, updated_at, deleted_at FROM manufacturer
+SELECT id, name, logo_url, description, group_id, created_at, updated_at, deleted_at FROM manufacturer where deleted_at is null
 `
 
 func (q *Queries) ListManufacturers(ctx context.Context) ([]Manufacturer, error) {

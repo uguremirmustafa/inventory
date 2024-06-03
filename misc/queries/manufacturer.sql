@@ -1,2 +1,2 @@
 -- name: ListManufacturers :many
-SELECT * FROM manufacturer;
+SELECT * FROM manufacturer where deleted_at is null;

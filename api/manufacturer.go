@@ -22,14 +22,14 @@ func handleListManufacturer(q *db.Queries) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		manufacturers, err := q.ListManufacturers(r.Context())
 		if err != nil {
-			encode(w, http.StatusNotFound, "no items found")
+			writeJson(w, http.StatusNotFound, "no items found")
 		}
 
 		var list []Manufacturer
 		for _, item := range manufacturers {
 			list = append(list, *getManufacturerJson(item))
 		}
-		encode(w, http.StatusOK, list)
+		writeJson(w, http.StatusOK, list)
 	})
 }
 

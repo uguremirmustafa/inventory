@@ -43,7 +43,7 @@ func addRoutes(mux *http.ServeMux, q *db.Queries, db *sql.DB) {
 	mux.Handle("DELETE /v1/location/{id}", authChain.Then(Make(locationService.HandleDeleteUserLocation)))
 
 	itemService := NewItemService(q, db)
-	mux.Handle("GET /v1/item", authChain.Then(Make(itemService.HandleListUserItem)))
+	mux.Handle("GET /v1/item", authChain.Then(Make(itemService.HandleListItems)))
 	mux.Handle("POST /v1/item", authChain.Then(Make(itemService.HandleInsertUserItem)))
 
 	uploadService := NewUploadService(q, db)

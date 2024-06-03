@@ -1,7 +1,6 @@
 package api
 
 import (
-	"database/sql"
 	"net/http"
 	"time"
 
@@ -20,26 +19,26 @@ func NewItemTypeService(q *db.Queries) *ItemTypeService {
 }
 
 func (s *ItemTypeService) HandleListItemTypes(w http.ResponseWriter, r *http.Request) error {
-	var reqBody struct {
-		ParentID *int64 `json:"parentID"`
-	}
-	err := decode(r, &reqBody)
-	if err != nil {
-		return InvalidJSON()
-	}
+	// var reqBody struct {
+	// 	ParentID *int64 `json:"parentID"`
+	// }
+	// err := decode(r, &reqBody)
+	// if err != nil {
+	// 	return InvalidJSON()
+	// }
 
-	var itemTypes []db.ItemType
-	if reqBody.ParentID != nil {
-		itemTypes, err = s.q.ListItemTypes(r.Context(), sql.NullInt64{Int64: *reqBody.ParentID, Valid: true})
-		if err != nil {
-			return NotFound()
-		}
-	} else {
-		itemTypes, err = s.q.ListMainItemTypes(r.Context())
-		if err != nil {
-			return NotFound()
-		}
+	// var itemTypes []db.ItemType
+	// if reqBody.ParentID != nil {
+	// 	itemTypes, err = s.q.ListItemTypes(r.Context(), sql.NullInt64{Int64: *reqBody.ParentID, Valid: true})
+	// 	if err != nil {
+	// 		return NotFound()
+	// 	}
+	// } else {
+	itemTypes, err := s.q.ListAllItemTypes(r.Context())
+	if err != nil {
+		return NotFound()
 	}
+	// }
 
 	var itemTypeJsonList []ItemType
 	for _, itemType := range itemTypes {

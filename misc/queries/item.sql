@@ -1,3 +1,32 @@
+-- name: ListItems :many
+SELECT 
+    i.id AS item_id,
+    i.name AS item_name,
+    i.description AS item_description,
+    i.created_at AS created_at,
+    i.updated_at AS updated_at
+FROM 
+    item i
+WHERE 
+    i.deleted_at IS NULL 
+    AND i.group_id = $1
+ORDER BY 
+    i.updated_at DESC;
+
+-- name: ListItemImages :many
+SELECT 
+    ii.item_id,
+    ii.image_url
+FROM 
+    item_image ii
+WHERE 
+    ii.item_id = $1
+    AND ii.deleted_at IS NULL
+ORDER BY 
+    ii.created_at DESC
+LIMIT $2;
+
+
 -- name: ListUserItems :many
 SELECT 
     i.id AS item_id,
@@ -33,13 +62,15 @@ INSERT INTO item (
     description,
     user_id,
     item_type_id,
-    manufacturer_id
+    manufacturer_id,
+	group_id
 ) VALUES (
     $1, -- name
 	$2, -- description
 	$3, -- user_id
 	$4, -- item_type_id
-	$5  -- manufacturer_id
+	$5,  -- manufacturer_id
+	$6
 ) RETURNING id;
 
 -- name: InsertItemInfo :one

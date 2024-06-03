@@ -22,6 +22,60 @@ func NewItemService(q *db.Queries, db *sql.DB) *ItemService {
 	}
 }
 
+type ItemRow struct {
+	ID          int64      `json:"id"`
+	Name        string     `json:"name"`
+	Description string     `json:"description"`
+	CreatedAt   *time.Time `json:"created_at"`
+	UpdatedAt   *time.Time `json:"updated_at"`
+	Images      []string   `json:"images"`
+}
+
+func getItemRowJson(i db.ListItemsRow, images []string) *ItemRow {
+	return &ItemRow{
+		ID:          i.ItemID,
+		Name:        i.ItemName,
+		Description: *utils.GetNilString(&i.ItemDescription),
+		CreatedAt:   utils.GetNilTime(&i.CreatedAt),
+		UpdatedAt:   utils.GetNilTime(&i.UpdatedAt),
+		Images:      images,
+	}
+}
+
+func (s *ItemService) HandleListItems(w http.ResponseWriter, r *http.Request) error {
+	groupID := getUserActiveGroupID(w, r)
+	groupItems, err := s.q.ListItems(r.Context(), groupID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return writeJson(w, http.StatusOK, []ItemRow{})
+		}
+		return err
+	}
+	var list []ItemRow
+	for _, item := range groupItems {
+		images, err := s.q.ListItemImages(r.Context(), db.ListItemImagesParams{
+			ItemID: item.ItemID,
+			Limit:  3,
+		})
+		var imageUrls []string
+		if err != nil {
+			if err == sql.ErrNoRows {
+				// No images found, proceed with an empty image list
+				imageUrls = []string{}
+			} else {
+				slog.Error("Error fetching images", slog.Int64("itemID", item.ItemID))
+				continue
+			}
+		} else {
+			for _, image := range images {
+				imageUrls = append(imageUrls, image.ImageUrl)
+			}
+		}
+		list = append(list, *getItemRowJson(item, imageUrls))
+	}
+	return writeJson(w, http.StatusOK, list)
+}
+
 func (s *ItemService) HandleListUserItem(w http.ResponseWriter, r *http.Request) error {
 	userID := getUserID(w, r)
 	userItems, err := s.q.ListUserItems(r.Context(), userID)
@@ -32,49 +86,55 @@ func (s *ItemService) HandleListUserItem(w http.ResponseWriter, r *http.Request)
 	for _, item := range userItems {
 		list = append(list, *getUserItemJson(item))
 	}
-	encode(w, http.StatusOK, list)
-	return nil
+	return writeJson(w, http.StatusOK, list)
 }
 
 func (s *ItemService) HandleInsertUserItem(w http.ResponseWriter, r *http.Request) error {
 	userID := getUserID(w, r)
-	tx, err := s.db.BeginTx(r.Context(), &sql.TxOptions{})
+	groupID := getUserActiveGroupID(w, r)
+	var reqBody struct {
+		Name        string `json:"name"`
+		Description string `json:"description"`
+		ItemTypeID  int64  `json:"item_type_id"`
+		ImgUrl      string `json:"img_url"`
+	}
+	err := decode(r, &reqBody)
+	if err != nil {
+		return InvalidJSON()
+	}
+	tx, err := s.db.BeginTx(r.Context(), nil)
 	if err != nil {
 		return err
 	}
+	defer tx.Rollback()
+	qtx := s.q.WithTx(tx)
 
 	// Insert a new user item within the transaction
 	itemParams := db.InsertUserItemParams{
-		Name:           "messi",
-		Description:    sql.NullString{String: "test", Valid: true},
+		Name:           reqBody.Name,
+		Description:    sql.NullString{String: reqBody.Description, Valid: true},
 		UserID:         userID,
 		ItemTypeID:     1,
 		ManufacturerID: sql.NullInt64{Int64: 1, Valid: true},
+		GroupID:        groupID,
 	}
-	itemID, err := s.q.WithTx(tx).InsertUserItem(r.Context(), itemParams)
+	itemID, err := qtx.InsertUserItem(r.Context(), itemParams)
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
-	// Insert a new user item info within the transaction
-	itemInfoParams := db.InsertItemInfoParams{
-		ItemID:           itemID,
-		PurchaseDate:     sql.NullTime{Time: time.Now(), Valid: true},
-		PurchaseLocation: sql.NullString{String: "Bilecik", Valid: true},
-		Price:            sql.NullInt64{Int64: 15, Valid: true},
-		LocationID:       sql.NullInt64{Int64: 1, Valid: true},
-	}
-	_, err = s.q.WithTx(tx).InsertItemInfo(r.Context(), itemInfoParams)
+	err = qtx.InsertItemImage(r.Context(), db.InsertItemImageParams{
+		ItemID:   itemID,
+		ImageUrl: reqBody.ImgUrl,
+	})
 	if err != nil {
-		tx.Rollback()
 		return err
 	}
-	// Commit the transaction
-	if err := tx.Commit(); err != nil {
-		slog.Error("Failed to insert user Item", err)
+	err = tx.Commit()
+	if err != nil {
+		slog.Error("transaction error")
+		return err
 	}
-	encode(w, http.StatusOK, "Success")
-	return nil
+	return writeJson(w, http.StatusOK, itemID)
 }
 
 type UserItemRow struct {

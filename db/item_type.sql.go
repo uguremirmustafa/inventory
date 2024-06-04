@@ -7,58 +7,28 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const createItemType = `-- name: CreateItemType :exec
-insert into item_type ("name") values ($1)
+insert into item_type ("name", "description") values ($1, $2)
 `
 
-func (q *Queries) CreateItemType(ctx context.Context, name string) error {
-	_, err := q.db.ExecContext(ctx, createItemType, name)
+type CreateItemTypeParams struct {
+	Name        string `db:"name" json:"name"`
+	Description string `db:"description" json:"description"`
+}
+
+func (q *Queries) CreateItemType(ctx context.Context, arg CreateItemTypeParams) error {
+	_, err := q.db.ExecContext(ctx, createItemType, arg.Name, arg.Description)
 	return err
 }
 
-const listAllItemTypes = `-- name: ListAllItemTypes :many
-SELECT id, name, created_at, updated_at, deleted_at, parent_id FROM item_type where deleted_at is null
-`
-
-func (q *Queries) ListAllItemTypes(ctx context.Context) ([]ItemType, error) {
-	rows, err := q.db.QueryContext(ctx, listAllItemTypes)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ItemType
-	for rows.Next() {
-		var i ItemType
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.DeletedAt,
-			&i.ParentID,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listItemTypes = `-- name: ListItemTypes :many
-SELECT id, name, created_at, updated_at, deleted_at, parent_id FROM item_type where deleted_at is null AND parent_id = $1
+SELECT id, name, description, icon_class, created_at, updated_at, deleted_at FROM item_type where deleted_at is null
 `
 
-func (q *Queries) ListItemTypes(ctx context.Context, parentID sql.NullInt64) ([]ItemType, error) {
-	rows, err := q.db.QueryContext(ctx, listItemTypes, parentID)
+func (q *Queries) ListItemTypes(ctx context.Context) ([]ItemType, error) {
+	rows, err := q.db.QueryContext(ctx, listItemTypes)
 	if err != nil {
 		return nil, err
 	}
@@ -69,44 +39,11 @@ func (q *Queries) ListItemTypes(ctx context.Context, parentID sql.NullInt64) ([]
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
+			&i.Description,
+			&i.IconClass,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
-			&i.ParentID,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listMainItemTypes = `-- name: ListMainItemTypes :many
-SELECT id, name, created_at, updated_at, deleted_at, parent_id FROM item_type where deleted_at is null AND parent_id is null
-`
-
-func (q *Queries) ListMainItemTypes(ctx context.Context) ([]ItemType, error) {
-	rows, err := q.db.QueryContext(ctx, listMainItemTypes)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ItemType
-	for rows.Next() {
-		var i ItemType
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.DeletedAt,
-			&i.ParentID,
 		); err != nil {
 			return nil, err
 		}

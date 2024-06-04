@@ -30,7 +30,7 @@ func addRoutes(mux *http.ServeMux, q *db.Queries, db *sql.DB) {
 	mux.Handle("GET /v1/group-members", authChain.Then(Make(groupService.HandleGetGroupMembers)))
 
 	itemTypeService := NewItemTypeService(q)
-	mux.Handle("POST /v1/list-item-types", authChain.Then(Make(itemTypeService.HandleListItemTypes)))
+	mux.Handle("GET /v1/item-type", authChain.Then(Make(itemTypeService.HandleListItemTypes)))
 	mux.Handle("POST /v1/item-type", authChain.Then(Make(itemTypeService.HandleCreateItemType)))
 
 	mux.Handle("GET /v1/manufacturer", authChain.Then(handleListManufacturer(q)))

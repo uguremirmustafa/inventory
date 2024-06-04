@@ -42,16 +42,15 @@ ALTER SEQUENCE item_id_seq RESTART WITH 1;
 delete from item_type;
 ALTER SEQUENCE item_type_id_seq RESTART WITH 1;
 insert into item_type 
-("id", "name", "parent_id") 
+("name", "description", "icon_class") 
 values
-(1, 'clothing', null),
-(2, 'shoes', null),
-(3, 'underwear & pyjamas', null),
-(4, 'accessories', null),
-(5, 'bijouterie', 4),
-(6, 'bag', 4),
-(7, 'hat', 4);
-
+('clothing, shoes and accessories','You can store clothing items, shoes and accessories under this category.','ion:shirt-outline'),
+('technological device','Laptops, sound systems, cables and mobile phones etc.','ph:devices-light'),
+('furniture','Sofa, bed, chairs and carpets. Any furniture can be stored under this category.','solar:sofa-2-linear'),
+('household appliances','Fridge, oven, microwave and your favourite toaster goes here.','solar:fridge-outline'),
+('cooking utensils','Spoons, pots and forks. Dont forget the jars.','hugeicons:kitchen-utensils'),
+('sports equipment','Bike, yoga mat and weights.','game-icons:weight-lifting-up'),
+('stationery and books','Pencils, A4 papers, books and notebooks goes here.','lucide:notebook-pen');
 
 
 -- insert manufacturers

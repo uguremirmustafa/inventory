@@ -19,37 +19,20 @@ func NewItemTypeService(q *db.Queries) *ItemTypeService {
 }
 
 func (s *ItemTypeService) HandleListItemTypes(w http.ResponseWriter, r *http.Request) error {
-	// var reqBody struct {
-	// 	ParentID *int64 `json:"parentID"`
-	// }
-	// err := decode(r, &reqBody)
-	// if err != nil {
-	// 	return InvalidJSON()
-	// }
-
-	// var itemTypes []db.ItemType
-	// if reqBody.ParentID != nil {
-	// 	itemTypes, err = s.q.ListItemTypes(r.Context(), sql.NullInt64{Int64: *reqBody.ParentID, Valid: true})
-	// 	if err != nil {
-	// 		return NotFound()
-	// 	}
-	// } else {
-	itemTypes, err := s.q.ListAllItemTypes(r.Context())
+	itemTypes, err := s.q.ListItemTypes(r.Context())
 	if err != nil {
 		return NotFound()
 	}
-	// }
-
 	var itemTypeJsonList []ItemType
 	for _, itemType := range itemTypes {
 		itemTypeJsonList = append(itemTypeJsonList, *getItemTypeJson(itemType))
 	}
-	writeJson(w, http.StatusOK, itemTypeJsonList)
-	return nil
+	return writeJson(w, http.StatusOK, itemTypeJsonList)
 }
 
 type CreateItemTypeParams struct {
-	Name string `json:"name"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
 }
 
 func (s *ItemTypeService) HandleCreateItemType(w http.ResponseWriter, r *http.Request) error {
@@ -59,7 +42,10 @@ func (s *ItemTypeService) HandleCreateItemType(w http.ResponseWriter, r *http.Re
 	if err != nil {
 		return err
 	}
-	err = s.q.CreateItemType(r.Context(), body.Name)
+	err = s.q.CreateItemType(r.Context(), db.CreateItemTypeParams{
+		Name:        body.Name,
+		Description: body.Description,
+	})
 	if err != nil {
 		return err
 	}
@@ -68,21 +54,23 @@ func (s *ItemTypeService) HandleCreateItemType(w http.ResponseWriter, r *http.Re
 }
 
 type ItemType struct {
-	ID        int64      `json:"id"`
-	Name      string     `json:"name"`
-	ParentID  *int64     `json:"parent_id"`
-	CreatedAt *time.Time `json:"created_at"`
-	UpdatedAt *time.Time `json:"updated_at"`
-	DeletedAt *time.Time `json:"-"`
+	ID          int64      `json:"id"`
+	Name        string     `json:"name"`
+	Description string     `json:"description"`
+	IconClass   string     `json:"icon_class"`
+	CreatedAt   *time.Time `json:"created_at"`
+	UpdatedAt   *time.Time `json:"updated_at"`
+	DeletedAt   *time.Time `json:"-"`
 }
 
 func getItemTypeJson(it db.ItemType) *ItemType {
 	return &ItemType{
-		ID:        it.ID,
-		Name:      it.Name,
-		ParentID:  utils.GetNilInt64(&it.ParentID),
-		CreatedAt: utils.GetNilTime(&it.CreatedAt),
-		UpdatedAt: utils.GetNilTime(&it.UpdatedAt),
-		DeletedAt: utils.GetNilTime(&it.DeletedAt),
+		ID:          it.ID,
+		Name:        it.Name,
+		Description: it.Description,
+		IconClass:   it.IconClass,
+		CreatedAt:   utils.GetNilTime(&it.CreatedAt),
+		UpdatedAt:   utils.GetNilTime(&it.UpdatedAt),
+		DeletedAt:   utils.GetNilTime(&it.DeletedAt),
 	}
 }

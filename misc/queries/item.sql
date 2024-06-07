@@ -17,6 +17,10 @@ WHERE
         $2::varchar IS NULL 
         OR i.name ILIKE '%' || $2 || '%' 
         OR i.description ILIKE '%' || $2 || '%'
+    )
+    AND (
+        $3::int = 0
+        OR i.item_type_id = $3
     );
 
 -- name: ListItemImages :many
@@ -100,5 +104,13 @@ INSERT INTO item_info (
 
 
 -- name: GetItem :one
-SELECT * FROM item
-WHERE item.id = $1;
+SELECT 
+    i.*,
+    it.name as item_type_name,
+    it.icon_class as item_type_icon_class,
+    u.name as user_name,
+    u.avatar as user_avatar
+FROM item i
+JOIN item_type it on i.item_type_id = it.id
+JOIN users u on i.user_id = u.id
+WHERE i.id = $1;

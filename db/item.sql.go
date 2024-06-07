@@ -11,13 +11,38 @@ import (
 )
 
 const getItem = `-- name: GetItem :one
-SELECT id, name, description, user_id, group_id, item_type_id, manufacturer_id, created_at, updated_at, deleted_at FROM item
-WHERE item.id = $1
+SELECT 
+    i.id, i.name, i.description, i.user_id, i.group_id, i.item_type_id, i.manufacturer_id, i.created_at, i.updated_at, i.deleted_at,
+    it.name as item_type_name,
+    it.icon_class as item_type_icon_class,
+    u.name as user_name,
+    u.avatar as user_avatar
+FROM item i
+JOIN item_type it on i.item_type_id = it.id
+JOIN users u on i.user_id = u.id
+WHERE i.id = $1
 `
 
-func (q *Queries) GetItem(ctx context.Context, id int64) (Item, error) {
+type GetItemRow struct {
+	ID                int64          `db:"id" json:"id"`
+	Name              string         `db:"name" json:"name"`
+	Description       sql.NullString `db:"description" json:"description"`
+	UserID            int64          `db:"user_id" json:"user_id"`
+	GroupID           int64          `db:"group_id" json:"group_id"`
+	ItemTypeID        int64          `db:"item_type_id" json:"item_type_id"`
+	ManufacturerID    sql.NullInt64  `db:"manufacturer_id" json:"manufacturer_id"`
+	CreatedAt         sql.NullTime   `db:"created_at" json:"created_at"`
+	UpdatedAt         sql.NullTime   `db:"updated_at" json:"updated_at"`
+	DeletedAt         sql.NullTime   `db:"deleted_at" json:"deleted_at"`
+	ItemTypeName      string         `db:"item_type_name" json:"item_type_name"`
+	ItemTypeIconClass string         `db:"item_type_icon_class" json:"item_type_icon_class"`
+	UserName          string         `db:"user_name" json:"user_name"`
+	UserAvatar        sql.NullString `db:"user_avatar" json:"user_avatar"`
+}
+
+func (q *Queries) GetItem(ctx context.Context, id int64) (GetItemRow, error) {
 	row := q.db.QueryRowContext(ctx, getItem, id)
-	var i Item
+	var i GetItemRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
@@ -29,6 +54,10 @@ func (q *Queries) GetItem(ctx context.Context, id int64) (Item, error) {
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+		&i.ItemTypeName,
+		&i.ItemTypeIconClass,
+		&i.UserName,
+		&i.UserAvatar,
 	)
 	return i, err
 }
@@ -186,11 +215,16 @@ WHERE
         OR i.name ILIKE '%' || $2 || '%' 
         OR i.description ILIKE '%' || $2 || '%'
     )
+    AND (
+        $3::int = 0
+        OR i.item_type_id = $3
+    )
 `
 
 type ListItemsParams struct {
 	GroupID int64  `db:"group_id" json:"group_id"`
 	Column2 string `db:"column_2" json:"column_2"`
+	Column3 int32  `db:"column_3" json:"column_3"`
 }
 
 type ListItemsRow struct {
@@ -204,7 +238,7 @@ type ListItemsRow struct {
 }
 
 func (q *Queries) ListItems(ctx context.Context, arg ListItemsParams) ([]ListItemsRow, error) {
-	rows, err := q.db.QueryContext(ctx, listItems, arg.GroupID, arg.Column2)
+	rows, err := q.db.QueryContext(ctx, listItems, arg.GroupID, arg.Column2, arg.Column3)
 	if err != nil {
 		return nil, err
 	}

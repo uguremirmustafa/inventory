@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/uguremirmustafa/inventory/db"
@@ -22,42 +23,28 @@ func NewItemService(q *db.Queries, db *sql.DB) *ItemService {
 	}
 }
 
-type ItemRow struct {
-	ID           int64      `json:"id"`
-	Name         string     `json:"name"`
-	Description  string     `json:"description"`
-	CreatedAt    *time.Time `json:"created_at"`
-	UpdatedAt    *time.Time `json:"updated_at"`
-	Images       []string   `json:"images"`
-	ItemTypeName string     `json:"item_type_name"`
-	ItemTypeID   int64      `json:"item_type_id"`
-	Total        int64      `json:"total"`
-}
-
-func getItemRowJson(i db.ListItemsRow, images []string) *ItemRow {
-	return &ItemRow{
-		ID:           i.ItemID,
-		Name:         i.ItemName,
-		Description:  *utils.GetNilString(&i.ItemDescription),
-		CreatedAt:    utils.GetNilTime(&i.CreatedAt),
-		UpdatedAt:    utils.GetNilTime(&i.UpdatedAt),
-		Images:       images,
-		ItemTypeName: i.ItemTypeName.String,
-		ItemTypeID:   i.ItemTypeID.Int64,
-	}
-}
-
 func (s *ItemService) HandleListItems(w http.ResponseWriter, r *http.Request) error {
 	q := r.URL.Query()
 	searchQuery := q.Get("search")
+	typeIdQuery := q.Get("type")
+
+	var type32 int32
+	if typeIdQuery != "" {
+		val, err := strconv.Atoi(typeIdQuery)
+		if err != nil {
+			return err
+		}
+		type32 = int32(val)
+	}
 
 	groupID := getUserActiveGroupID(w, r)
 	groupItems, err := s.q.ListItems(r.Context(), db.ListItemsParams{
 		GroupID: groupID,
 		Column2: searchQuery,
+		Column3: type32,
 	})
 	slog.Error("searchQuery", slog.String("searchQuery", searchQuery))
-	slog.Error("asdsa", slog.Any("asdas", groupItems))
+	slog.Error("type32", slog.Int("type32", int(type32)))
 
 	var list []ItemRow = []ItemRow{}
 	if err != nil {
@@ -114,7 +101,19 @@ func (s *ItemService) HandleGetUserItem(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		return NotFound()
 	}
-	return writeJson(w, http.StatusOK, item)
+	var imageUrls []string = []string{}
+	images, err := s.q.ListItemImages(r.Context(), db.ListItemImagesParams{
+		ItemID: item.ID,
+		Limit:  3,
+	})
+	if err != nil {
+		slog.Info("no images found for item", slog.Int64("itemID", item.ID))
+	} else {
+		for _, image := range images {
+			imageUrls = append(imageUrls, image.ImageUrl)
+		}
+	}
+	return writeJson(w, http.StatusOK, getItemJson(item, imageUrls))
 }
 
 func (s *ItemService) HandleInsertUserItem(w http.ResponseWriter, r *http.Request) error {
@@ -149,7 +148,7 @@ func (s *ItemService) HandleInsertUserItem(w http.ResponseWriter, r *http.Reques
 		Name:           reqBody.Name,
 		Description:    sql.NullString{String: reqBody.Description, Valid: true},
 		UserID:         userID,
-		ItemTypeID:     1,
+		ItemTypeID:     reqBody.ItemTypeID,
 		ManufacturerID: manufacturerID,
 		GroupID:        groupID,
 	}
@@ -215,5 +214,66 @@ func getUserItemJson(l db.ListUserItemsRow) *UserItemRow {
 		LocationName:        utils.GetNilString(&l.LocationName),
 		LocationDescription: utils.GetNilString(&l.LocationDescription),
 		LocationImg:         utils.GetNilString(&l.LocationImg),
+	}
+}
+
+type Item struct {
+	ID             int64      `json:"id"`
+	Name           string     `json:"name"`
+	Description    *string    `json:"description"`
+	UserID         int64      `json:"user_id"`
+	GroupID        int64      `json:"group_id"`
+	ItemTypeID     int64      `json:"item_type_id"`
+	ItemTypeName   string     `json:"item_type_name"`
+	ManufacturerID *int64     `json:"manufacturer_id"`
+	CreatedAt      *time.Time `json:"created_at"`
+	UpdatedAt      *time.Time `json:"updated_at"`
+	Images         []string   `json:"images"`
+	AddedBy        string     `json:"added_by"`
+	AddedByAvatar  *string    `json:"added_by_avatar"`
+	ItemTypeIcon   string     `json:"item_type_icon"`
+}
+
+func getItemJson(i db.GetItemRow, images []string) *Item {
+	return &Item{
+		ID:             i.ID,
+		Name:           i.Name,
+		Description:    utils.GetNilString(&i.Description),
+		UserID:         i.UserID,
+		GroupID:        i.GroupID,
+		ItemTypeID:     i.ItemTypeID,
+		ItemTypeName:   i.ItemTypeName,
+		ManufacturerID: utils.GetNilInt64(&i.ManufacturerID),
+		CreatedAt:      utils.GetNilTime(&i.CreatedAt),
+		UpdatedAt:      utils.GetNilTime(&i.UpdatedAt),
+		Images:         images,
+		AddedBy:        i.UserName,
+		AddedByAvatar:  utils.GetNilString(&i.UserAvatar),
+		ItemTypeIcon:   i.ItemTypeIconClass,
+	}
+}
+
+type ItemRow struct {
+	ID           int64      `json:"id"`
+	Name         string     `json:"name"`
+	Description  string     `json:"description"`
+	CreatedAt    *time.Time `json:"created_at"`
+	UpdatedAt    *time.Time `json:"updated_at"`
+	Images       []string   `json:"images"`
+	ItemTypeName string     `json:"item_type_name"`
+	ItemTypeID   int64      `json:"item_type_id"`
+	Total        int64      `json:"total"`
+}
+
+func getItemRowJson(i db.ListItemsRow, images []string) *ItemRow {
+	return &ItemRow{
+		ID:           i.ItemID,
+		Name:         i.ItemName,
+		Description:  *utils.GetNilString(&i.ItemDescription),
+		CreatedAt:    utils.GetNilTime(&i.CreatedAt),
+		UpdatedAt:    utils.GetNilTime(&i.UpdatedAt),
+		Images:       images,
+		ItemTypeName: i.ItemTypeName.String,
+		ItemTypeID:   i.ItemTypeID.Int64,
 	}
 }

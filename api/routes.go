@@ -44,6 +44,7 @@ func addRoutes(mux *http.ServeMux, q *db.Queries, db *sql.DB) {
 
 	itemService := NewItemService(q, db)
 	mux.Handle("GET /v1/item", authChain.Then(Make(itemService.HandleListItems)))
+	mux.Handle("GET /v1/item/{id}", authChain.Then(Make(itemService.HandleGetUserItem)))
 	mux.Handle("POST /v1/item", authChain.Then(Make(itemService.HandleInsertUserItem)))
 
 	uploadService := NewUploadService(q, db)

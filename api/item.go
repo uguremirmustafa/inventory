@@ -23,35 +23,51 @@ func NewItemService(q *db.Queries, db *sql.DB) *ItemService {
 }
 
 type ItemRow struct {
-	ID          int64      `json:"id"`
-	Name        string     `json:"name"`
-	Description string     `json:"description"`
-	CreatedAt   *time.Time `json:"created_at"`
-	UpdatedAt   *time.Time `json:"updated_at"`
-	Images      []string   `json:"images"`
+	ID           int64      `json:"id"`
+	Name         string     `json:"name"`
+	Description  string     `json:"description"`
+	CreatedAt    *time.Time `json:"created_at"`
+	UpdatedAt    *time.Time `json:"updated_at"`
+	Images       []string   `json:"images"`
+	ItemTypeName string     `json:"item_type_name"`
+	ItemTypeID   int64      `json:"item_type_id"`
+	Total        int64      `json:"total"`
 }
 
 func getItemRowJson(i db.ListItemsRow, images []string) *ItemRow {
 	return &ItemRow{
-		ID:          i.ItemID,
-		Name:        i.ItemName,
-		Description: *utils.GetNilString(&i.ItemDescription),
-		CreatedAt:   utils.GetNilTime(&i.CreatedAt),
-		UpdatedAt:   utils.GetNilTime(&i.UpdatedAt),
-		Images:      images,
+		ID:           i.ItemID,
+		Name:         i.ItemName,
+		Description:  *utils.GetNilString(&i.ItemDescription),
+		CreatedAt:    utils.GetNilTime(&i.CreatedAt),
+		UpdatedAt:    utils.GetNilTime(&i.UpdatedAt),
+		Images:       images,
+		ItemTypeName: i.ItemTypeName.String,
+		ItemTypeID:   i.ItemTypeID.Int64,
 	}
 }
 
 func (s *ItemService) HandleListItems(w http.ResponseWriter, r *http.Request) error {
+	q := r.URL.Query()
+	searchQuery := q.Get("search")
+
 	groupID := getUserActiveGroupID(w, r)
-	groupItems, err := s.q.ListItems(r.Context(), groupID)
+	groupItems, err := s.q.ListItems(r.Context(), db.ListItemsParams{
+		GroupID: groupID,
+		Column2: searchQuery,
+	})
+	slog.Error("searchQuery", slog.String("searchQuery", searchQuery))
+	slog.Error("asdsa", slog.Any("asdas", groupItems))
+
+	var list []ItemRow = []ItemRow{}
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return writeJson(w, http.StatusOK, []ItemRow{})
+			// No items found, return an empty list
+			return writeJson(w, http.StatusOK, list)
 		}
-		return err
+		slog.Error("error while listing items", err)
+		return writeJson(w, http.StatusOK, list)
 	}
-	var list []ItemRow
 	for _, item := range groupItems {
 		images, err := s.q.ListItemImages(r.Context(), db.ListItemImagesParams{
 			ItemID: item.ItemID,
@@ -89,14 +105,27 @@ func (s *ItemService) HandleListUserItem(w http.ResponseWriter, r *http.Request)
 	return writeJson(w, http.StatusOK, list)
 }
 
+func (s *ItemService) HandleGetUserItem(w http.ResponseWriter, r *http.Request) error {
+	id, err := utils.GetPathID(r)
+	if err != nil {
+		return NotFound()
+	}
+	item, err := s.q.GetItem(r.Context(), id)
+	if err != nil {
+		return NotFound()
+	}
+	return writeJson(w, http.StatusOK, item)
+}
+
 func (s *ItemService) HandleInsertUserItem(w http.ResponseWriter, r *http.Request) error {
 	userID := getUserID(w, r)
 	groupID := getUserActiveGroupID(w, r)
 	var reqBody struct {
-		Name        string `json:"name"`
-		Description string `json:"description"`
-		ItemTypeID  int64  `json:"item_type_id"`
-		ImgUrl      string `json:"img_url"`
+		Name           string `json:"name"`
+		Description    string `json:"description"`
+		ItemTypeID     int64  `json:"item_type_id"`
+		ManufacturerID *int64 `json:"manufacturer_id"`
+		ImgUrl         string `json:"img_url"`
 	}
 	err := decode(r, &reqBody)
 	if err != nil {
@@ -109,13 +138,19 @@ func (s *ItemService) HandleInsertUserItem(w http.ResponseWriter, r *http.Reques
 	defer tx.Rollback()
 	qtx := s.q.WithTx(tx)
 
+	var manufacturerID sql.NullInt64
+	if reqBody.ManufacturerID != nil {
+		manufacturerID = sql.NullInt64{Int64: *reqBody.ManufacturerID, Valid: true}
+	} else {
+		manufacturerID = sql.NullInt64{Valid: false}
+	}
 	// Insert a new user item within the transaction
 	itemParams := db.InsertUserItemParams{
 		Name:           reqBody.Name,
 		Description:    sql.NullString{String: reqBody.Description, Valid: true},
 		UserID:         userID,
 		ItemTypeID:     1,
-		ManufacturerID: sql.NullInt64{Int64: 1, Valid: true},
+		ManufacturerID: manufacturerID,
 		GroupID:        groupID,
 	}
 	itemID, err := qtx.InsertUserItem(r.Context(), itemParams)

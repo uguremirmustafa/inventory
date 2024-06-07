@@ -4,14 +4,20 @@ SELECT
     i.name AS item_name,
     i.description AS item_description,
     i.created_at AS created_at,
-    i.updated_at AS updated_at
+    i.updated_at AS updated_at,
+    it.name AS item_type_name,
+    it.id AS item_type_id
 FROM 
     item i
+    LEFT JOIN item_type it ON it.id = i.item_type_id
 WHERE 
     i.deleted_at IS NULL 
     AND i.group_id = $1
-ORDER BY 
-    i.updated_at DESC;
+    AND (
+        $2::varchar IS NULL 
+        OR i.name ILIKE '%' || $2 || '%' 
+        OR i.description ILIKE '%' || $2 || '%'
+    );
 
 -- name: ListItemImages :many
 SELECT 
@@ -91,3 +97,8 @@ INSERT INTO item_info (
 	$6, -- last_used
 	$7  -- location_id
 ) RETURNING id;
+
+
+-- name: GetItem :one
+SELECT * FROM item
+WHERE item.id = $1;

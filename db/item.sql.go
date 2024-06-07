@@ -10,6 +10,29 @@ import (
 	"database/sql"
 )
 
+const getItem = `-- name: GetItem :one
+SELECT id, name, description, user_id, group_id, item_type_id, manufacturer_id, created_at, updated_at, deleted_at FROM item
+WHERE item.id = $1
+`
+
+func (q *Queries) GetItem(ctx context.Context, id int64) (Item, error) {
+	row := q.db.QueryRowContext(ctx, getItem, id)
+	var i Item
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.UserID,
+		&i.GroupID,
+		&i.ItemTypeID,
+		&i.ManufacturerID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
 const insertItemInfo = `-- name: InsertItemInfo :one
 INSERT INTO item_info (
     item_id,
@@ -149,15 +172,26 @@ SELECT
     i.name AS item_name,
     i.description AS item_description,
     i.created_at AS created_at,
-    i.updated_at AS updated_at
+    i.updated_at AS updated_at,
+    it.name AS item_type_name,
+    it.id AS item_type_id
 FROM 
     item i
+    LEFT JOIN item_type it ON it.id = i.item_type_id
 WHERE 
     i.deleted_at IS NULL 
     AND i.group_id = $1
-ORDER BY 
-    i.updated_at DESC
+    AND (
+        $2::varchar IS NULL 
+        OR i.name ILIKE '%' || $2 || '%' 
+        OR i.description ILIKE '%' || $2 || '%'
+    )
 `
+
+type ListItemsParams struct {
+	GroupID int64  `db:"group_id" json:"group_id"`
+	Column2 string `db:"column_2" json:"column_2"`
+}
 
 type ListItemsRow struct {
 	ItemID          int64          `db:"item_id" json:"item_id"`
@@ -165,10 +199,12 @@ type ListItemsRow struct {
 	ItemDescription sql.NullString `db:"item_description" json:"item_description"`
 	CreatedAt       sql.NullTime   `db:"created_at" json:"created_at"`
 	UpdatedAt       sql.NullTime   `db:"updated_at" json:"updated_at"`
+	ItemTypeName    sql.NullString `db:"item_type_name" json:"item_type_name"`
+	ItemTypeID      sql.NullInt64  `db:"item_type_id" json:"item_type_id"`
 }
 
-func (q *Queries) ListItems(ctx context.Context, groupID int64) ([]ListItemsRow, error) {
-	rows, err := q.db.QueryContext(ctx, listItems, groupID)
+func (q *Queries) ListItems(ctx context.Context, arg ListItemsParams) ([]ListItemsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listItems, arg.GroupID, arg.Column2)
 	if err != nil {
 		return nil, err
 	}
@@ -182,6 +218,8 @@ func (q *Queries) ListItems(ctx context.Context, groupID int64) ([]ListItemsRow,
 			&i.ItemDescription,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.ItemTypeName,
+			&i.ItemTypeID,
 		); err != nil {
 			return nil, err
 		}
